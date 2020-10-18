@@ -122,7 +122,7 @@ export default function parseOptions(options: CommandOptions): YargsParserOption
   return parserOptions;
 }
 
-function getRequiredOptions(options: CommandOptions): Array<string> {
+function getRequiredOptions(options: CommandOptions | CommandPositionals): Array<string> {
   return Object.keys(options).reduce((memo, argKey) => {
     if ('required' in options[argKey] && typeof options[argKey].required === 'boolean' && options[argKey].required) {
       memo.push(argKey);
@@ -135,19 +135,26 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
   argv: Argv<P, O>,
   positionals: P,
   options: O
-): { [key: string]: Array<Error> } {
+): { _: { [key: string]: Array<Error> }, _unknown: Array<Error>, [key: string]: Array<Error> } {
   const errors = Object.keys(options).reduce(
     (memo, key) => {
       memo[key] = [];
       return memo;
     },
-    { _: [], _unknown: [] }
+    { _: Object.keys(positionals).reduce((memo, key) => {
+      memo[key] = []; return memo;}, {}), _unknown: [] }
   );
   getRequiredOptions(options).forEach((requiredKey) => {
     if (!(requiredKey in argv)) {
       errors[requiredKey].push(new Error(`No value provided for required argument "--${requiredKey}"`));
     }
   });
+
+  getRequiredOptions(positionals).forEach((requiredPositional) => {
+    if (!(requiredPositional in argv._)) {
+      errors._[requiredPositional].push(new Error(`No value provided for required positional "<${requiredPositional}>"`))
+    }
+  })
 
   Object.entries(argv).forEach(([argKey, argValue]) => {
     if (argKey === '_') {
