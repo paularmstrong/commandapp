@@ -1,4 +1,3 @@
-import { CommandAppError } from './CommandError';
 import glob from 'glob';
 import parser from 'yargs-parser';
 import path from 'path';
@@ -6,7 +5,7 @@ import parseOptions, { validate } from './options';
 import type { Argv, CommandOptions, CommandPositionals } from './options';
 
 export type { Argv } from './options';
-
+export type Middleware = (args: {}) => Promise<{}>;
 export type Config = { ignoreCommands?: RegExp, rootDir?: string, subcommandDir?: string };
 export type GlobalOptions = { verbose?: number };
 
@@ -22,6 +21,8 @@ type Command = {
 };
 
 const ignoreCommandRegex = /(\/__\w+__\/|\.test\.|\.spec\.)/;
+
+const yargsConfiguration = { 'camel-case-expansion': false, 'dot-notation': false, 'strip-aliased': true };
 
 export default async function bootstrap(
   config?: Config,
@@ -151,7 +152,3 @@ export function resolveCommand(
     }
   }
 }
-
-export type Middleware = (args: {}) => Promise<{}>;
-
-export const yargsConfiguration = { 'camel-case-expansion': false, 'dot-notation': false, 'strip-aliased': true };
