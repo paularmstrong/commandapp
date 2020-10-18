@@ -10,7 +10,18 @@ export type { Argv } from './options';
 export type Config = { ignoreCommands?: RegExp, rootDir?: string, subcommandDir?: string };
 export type GlobalOptions = { verbose?: number };
 
-const ignoreCommandRegex = /(\/__\w+__\/|\.test\.)/;
+type Command = {
+  alias?: string,
+  command: string,
+  description: string,
+  examples: Array<string>,
+  handler: <T>(args: T) => Promise<void>,
+  middleware: Middleware,
+  options: CommandOptions,
+  positionals: CommandPositionals,
+};
+
+const ignoreCommandRegex = /(\/__\w+__\/|\.test\.|\.spec\.)/;
 
 export default async function bootstrap(
   config?: Config,
@@ -19,7 +30,7 @@ export default async function bootstrap(
 ) {
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
   const { verbose = 0 } = globalOptions || {};
-  const { _: commands, help, ...argv } = parser(inputArgs, {
+  const { _: inputCommand, help, ...argv } = parser(inputArgs, {
     alias: { help: 'h' },
     boolean: ['help'],
     configuration: yargsConfiguration,
@@ -30,26 +41,57 @@ export default async function bootstrap(
   const resolvedSubcommandDir =
     typeof subcommandDir === 'string' && subcommandDir.length ? path.join(rootDir, subcommandDir) : rootDir;
 
-  if (Boolean(help) && commands.length === 0) {
-    const commands = glob
-      .sync(`${resolvedSubcommandDir}/**/*`, {
-        nodir: true,
-      })
-      .filter((commandPath) => !ignoreCommands.test(commandPath))
-      .map((commandPath) => ({
-        command: path.relative(resolvedSubcommandDir, commandPath).replace('.js', '').split('/').join(' '),
+  const commands: Array<Command> = glob
+    .sync(`${resolvedSubcommandDir}/**/*`, {
+      nodir: true,
+    })
+    .filter((commandPath) => !ignoreCommands.test(commandPath))
+    .map((commandPath) => {
+      const source = require(commandPath);
+      const command = path
+        .relative(resolvedSubcommandDir, commandPath)
+        .replace('.js', '')
+        .split('/')
+        .join(' ')
+        .replace(' index', '');
+
+      if (!source.description) {
+        throw new Error(`Missing description for ${command}`);
+      }
+
+      if (!source.handler) {
+        throw new Error(`Missing handler for ${command}`);
+      }
+
+      return {
+        examples: [],
+        positionals: {},
+        options: {},
+        middleware: [],
+        ...source,
+        alias: source.alias ? command.replace(/\w+$/, source.alias) : undefined,
+        command,
         path: path.relative(rootDir, commandPath),
-        source: require(commandPath),
-      }));
+      };
+    });
+
+  const resolvedCommand = resolveCommand(commands, inputCommand);
+
+  if (!resolvedCommand) {
     console.log(commands);
     return;
   }
 
-  const { description, handler, options = {}, positionals = {}, middleware = [] } = resolveCommand(commands, {
-    rootDir,
-    subcommandDir,
-    verbose,
-  });
+  const {
+    alias,
+    command,
+    description,
+    handler,
+    options = {},
+    positionals = {},
+    matchedAlias = false,
+    middleware = [],
+  } = resolvedCommand;
 
   if (Boolean(help)) {
     console.log(options);
@@ -60,14 +102,24 @@ export default async function bootstrap(
     ...parseOptions(options),
     configuration: yargsConfiguration,
   });
+  const inputPositionals = parsedPositionals.slice(
+    (typeof alias === 'string' && matchedAlias ? alias : command).split(' ').length
+  );
   const positionalKeys = Reflect.ownKeys(positionals);
   const finalArgs: Argv<CommandPositionals, CommandOptions> = {
     ...parsedArgs,
-    _: parsedPositionals.reduce((memo, value, i) => {
-      if (positionals[positionalKeys[i]].greedy) {
-        memo[positionalKeys[i]] = [value];
+    _: positionalKeys.reduce((memo, positionalKey, i) => {
+      const opts = positionals[positionalKey];
+      if (opts.greedy) {
+        if (i + 1 !== positionalKeys.length) {
+          throw new Error(
+            `Positional ${positionalKey} defined as "greedy", but is not possible because it is not the last positional option`
+          );
+        }
+        memo[positionalKey] = inputPositionals.slice(i);
+      } else {
+        memo[positionalKey] = inputPositionals[i];
       }
-      memo[positionalKeys[i]] = value;
       return memo;
     }, {}),
   };
@@ -83,23 +135,21 @@ export default async function bootstrap(
 }
 
 export function resolveCommand(
-  commands: Array<string>,
-  { rootDir, subcommandDir, verbose }: { rootDir: string, subcommandDir?: string, verbose: number }
-) {
-  let command, commandPath;
-  const commandDir = path.join(rootDir, subcommandDir || '');
-  for (let i = commands.length; i > 0; i--) {
-    const subcommand = commands.slice(0, i);
-    commandPath = path.join(commandDir, subcommand.join(path.sep));
-    try {
-      if (verbose > 0) {
-        console.log(`Looking for subcommand "${subcommand.join(' ')}" at ${commandPath}`);
-      }
-      return require(commandPath);
-    } catch (e) {}
-  }
+  commands: Array<Command>,
+  positionalInput: Array<string>
+): { ...Command, matchedAlias: boolean } | void {
+  for (let i = positionalInput.length; i > 0; i--) {
+    const subcommand = positionalInput.slice(0, i).join(' ');
+    const commandMatch = commands.find(({ command }) => subcommand === command);
+    if (commandMatch) {
+      return { ...commandMatch, matchedAlias: false };
+    }
 
-  throw new CommandAppError(`Command not found "${commands.join(' ')}"\n`);
+    const aliasMatch = commands.find(({ alias }) => subcommand === alias);
+    if (aliasMatch) {
+      return { ...aliasMatch, matchedAlias: true };
+    }
+  }
 }
 
 export type Middleware = (args: {}) => Promise<{}>;
