@@ -100,6 +100,9 @@ export default function parseOptions(options: CommandOptions): YargsParserOption
 
   Object.keys(options).forEach((argKey) => {
     const { alias, normalize, type, ...rest } = options[argKey];
+    if (!(type in parserOptions)) {
+      throw new Error(`Option "${argKey}" has invalid type "${type}"`);
+    }
     parserOptions[type].push(argKey);
 
     if (Array.isArray(alias) || typeof alias === 'string') {
@@ -142,7 +145,7 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
   );
   getRequiredOptions(options).forEach((requiredKey) => {
     if (!(requiredKey in argv)) {
-      errors[requiredKey].push(new Error(`No value found for required argument "--${requiredKey}"`));
+      errors[requiredKey].push(new Error(`No value provided for required argument "--${requiredKey}"`));
     }
   });
 
@@ -165,7 +168,7 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
       Array.isArray(option.choices)
     ) {
       const { choices } = option;
-      if (choices.includes(argValue)) {
+      if (!choices.includes(argValue)) {
         errors[argKey].push(
           new Error(`Value "${argValue}" for "--${argKey}" failed to match one of "${choices.join('", "')}"`)
         );
