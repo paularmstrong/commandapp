@@ -27,7 +27,8 @@ const yargsConfiguration = { 'camel-case-expansion': false, 'dot-notation': fals
 export default async function bootstrap(
   config?: Config,
   globalOptions?: GlobalOptions,
-  inputArgs?: string = process.argv.slice(2).join(' ')
+  inputArgs: string = process.argv.slice(2).join(' '),
+  commandRequire: typeof require = require
 ) {
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
   const { verbose = 0 } = globalOptions || {};
@@ -48,7 +49,7 @@ export default async function bootstrap(
     })
     .filter((commandPath) => !ignoreCommands.test(commandPath))
     .map((commandPath) => {
-      const source = require(commandPath);
+      const source = commandRequire(commandPath);
       const command = path
         .relative(resolvedSubcommandDir, commandPath)
         .replace('.js', '')
@@ -57,11 +58,11 @@ export default async function bootstrap(
         .replace(' index', '');
 
       if (!source.description) {
-        throw new Error(`Missing description for ${command}`);
+        throw new Error(`Missing description for "${command}"`);
       }
 
       if (!source.handler) {
-        throw new Error(`Missing handler for ${command}`);
+        throw new Error(`Missing handler for "${command}"`);
       }
 
       return {
