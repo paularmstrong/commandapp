@@ -71,7 +71,7 @@ export default async function bootstrap(
         options: {},
         middleware: [],
         ...source,
-        alias: source.alias ? command.replace(/\w+$/, source.alias) : undefined,
+        alias: source.alias ? command.replace(/[\w-]+$/, source.alias) : undefined,
         command,
         path: path.relative(rootDir, commandPath),
       };
@@ -115,7 +115,7 @@ export default async function bootstrap(
       if (opts.greedy) {
         if (i + 1 !== positionalKeys.length) {
           throw new Error(
-            `Positional ${positionalKey} defined as "greedy", but is not possible because it is not the last positional option`
+            `Positional "${positionalKey}" defined as "greedy", but cannot be because it is not the last positional option`
           );
         }
         memo[positionalKey] = inputPositionals.slice(i);
