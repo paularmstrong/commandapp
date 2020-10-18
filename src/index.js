@@ -126,10 +126,9 @@ export default async function bootstrap(
     }, {}),
   };
 
-  try {
-    validate(finalArgs, positionals, options);
-  } catch (e) {
-    console.error(e);
+  const errorReport = validate(finalArgs, positionals, options);
+  if (!errorReport._isValid) {
+    console.log(errorReport);
     return;
   }
 

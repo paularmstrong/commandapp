@@ -135,24 +135,26 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
   argv: Argv<P, O>,
   positionals: P,
   options: O
-): { _: { [key: string]: Array<Error> }, _unknown: Array<Error>, [key: string]: Array<Error> } {
+): { _isValid: boolean, _: { [key: string]: Array<Error> }, _unknown: Array<Error>, [key: string]: Array<Error> } {
   const errors = Object.keys(options).reduce(
     (memo, key) => {
       memo[key] = [];
       return memo;
     },
-    { _: Object.keys(positionals).reduce((memo, key) => {
+    { _isValid: true, _: Object.keys(positionals).reduce((memo, key) => {
       memo[key] = []; return memo;}, {}), _unknown: [] }
   );
   getRequiredOptions(options).forEach((requiredKey) => {
     if (!(requiredKey in argv)) {
       errors[requiredKey].push(new Error(`No value provided for required argument "--${requiredKey}"`));
+      errors._isValid = false;
     }
   });
 
   getRequiredOptions(positionals).forEach((requiredPositional) => {
     if (!(requiredPositional in argv._)) {
       errors._[requiredPositional].push(new Error(`No value provided for required positional "<${requiredPositional}>"`))
+      errors._isValid = false;
     }
   })
 
@@ -163,6 +165,7 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
 
     if (!Object.keys(options).includes(argKey)) {
       errors._unknown.push(new Error(`Received unknown argument "--${argKey}"`));
+      errors._isValid = false;
       return;
     }
 
@@ -179,6 +182,7 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
         errors[argKey].push(
           new Error(`Value "${argValue}" for "--${argKey}" failed to match one of "${choices.join('", "')}"`)
         );
+        errors._isValid = false;
       }
     }
   });

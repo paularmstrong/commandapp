@@ -103,7 +103,7 @@ describe('parseOptions', () => {
 
 describe('validate', () => {
   test('returns no errors', () => {
-    expect(validate({ _: {} }, {}, {})).toEqual({ _: {}, _unknown: [] });
+    expect(validate({ _: {} }, {}, {})).toEqual({ _isValid: true, _: {}, _unknown: [] });
   });
 
   describe('positionals', () => {
@@ -111,6 +111,7 @@ describe('validate', () => {
       expect(
         // $FlowExpectedError
         validate({ _: {} }, { foo: { required: true, description: 'required positional' }}, {})).toEqual({
+          _isValid: false,
         _: { foo: [new Error('No value provided for required positional "<foo>"')]},
         _unknown: []
       })
@@ -119,7 +120,9 @@ describe('validate', () => {
     test('required positional provided', () => {
       expect(
         // $FlowFixMe this should be working
-        validate({ _: { foo: 'foo-value' } }, { foo: { required: true, description: 'required positional' }}, {})).toEqual({
+        validate({ _: { foo: 'foo-value' } }, { foo: { required: true, description: 'required positional' }}, {})).
+      toEqual({
+        _isValid: true,
         _: { foo: [] },
         _unknown: []
       })
@@ -132,6 +135,7 @@ describe('validate', () => {
         // $FlowExpectedError
         validate({ _: {}, foo: 'tacos' }, {}, { foo: { description, type: 'string', choices: ['bar', 'qux'] } })
       ).toEqual({
+        _isValid: false,
         _: {},
         _unknown: [],
         foo: [new Error('Value "tacos" for "--foo" failed to match one of "bar", "qux"')],
@@ -143,6 +147,7 @@ describe('validate', () => {
         // $FlowExpectedError
         validate({ _: {}, foo: 'bar' }, {}, { foo: { description, type: 'string', choices: ['bar', 'qux'] } })
       ).toEqual({
+        _isValid: true,
         _: {},
         _unknown: [],
         foo: [],
@@ -154,6 +159,7 @@ describe('validate', () => {
         // $FlowExpectedError
         validate({ _: {} }, {}, { foo: { description, type: 'string', required: true } })
       ).toEqual({
+        _isValid: false,
         _: {},
         _unknown: [],
         foo: [new Error('No value provided for required argument "--foo"')],
@@ -165,6 +171,7 @@ describe('validate', () => {
         // $FlowExpectedError
         validate({ _: {}, foo: 'foobar' }, {}, { foo: { description, type: 'string', required: true } })
       ).toEqual({
+        _isValid: true,
         _: {},
         _unknown: [],
         foo: [],
@@ -177,6 +184,7 @@ describe('validate', () => {
       // $FlowExpectedError
       validate({ _: {}, foo: 'is unknown', bar: 'is also uknown' }, {}, {})
     ).toEqual({
+      _isValid: false,
       _: {},
       _unknown: [new Error('Received unknown argument "--foo"'), new Error('Received unknown argument "--bar"')],
     });
