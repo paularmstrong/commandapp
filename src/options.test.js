@@ -6,7 +6,7 @@ const defaultOptions = Object.freeze({
   array: [],
   boolean: ['help'],
   count: ['verbosity'],
-  default: {},
+  default: { verbosity: 0 },
   normalize: [],
   number: [],
   string: [],
@@ -64,7 +64,7 @@ describe('parseOptions', () => {
       ...defaultOptions,
       string: ['foo'],
       number: ['bar'],
-      default: { foo: 'foo default', bar: 2 },
+      default: { foo: 'foo default', bar: 2, verbosity: 0 },
     });
   });
 
