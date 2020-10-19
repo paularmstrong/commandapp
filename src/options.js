@@ -89,11 +89,11 @@ export type Argv<pos: CommandPositionals, opts: CommandOptions> = {|
 
 export default function parseOptions(options: CommandOptions): YargsParserOptions {
   const parserOptions: YargsParserOptions = {
-    alias: { help: 'h' },
+    alias: { help: 'h', verbosity: 'v' },
     array: [],
     boolean: ['help'],
-    count: [],
-    default: {},
+    count: ['verbosity'],
+    default: { verbosity: 0 },
     normalize: [],
     number: [],
     string: [],

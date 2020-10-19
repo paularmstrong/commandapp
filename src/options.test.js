@@ -2,10 +2,10 @@
 import parseOptions, { validate } from './options';
 
 const defaultOptions = Object.freeze({
-  alias: { help: 'h' },
+  alias: { help: 'h', verbosity: 'v' },
   array: [],
   boolean: ['help'],
-  count: [],
+  count: ['verbosity'],
   default: {},
   normalize: [],
   number: [],
@@ -19,7 +19,7 @@ describe('parseOptions', () => {
     test('single alias', () => {
       expect(parseOptions({ foo: { description, alias: 'f', type: 'string' } })).toEqual({
         ...defaultOptions,
-        alias: { help: 'h', foo: 'f' },
+        alias: { help: 'h', foo: 'f', verbosity: 'v' },
         string: ['foo'],
       });
     });
@@ -27,7 +27,7 @@ describe('parseOptions', () => {
     test('array of aliases', () => {
       expect(parseOptions({ foo: { description, alias: ['f', 'b'], type: 'string' } })).toEqual({
         ...defaultOptions,
-        alias: { help: 'h', foo: ['f', 'b'] },
+        alias: { help: 'h', foo: ['f', 'b'], verbosity: 'v' },
         string: ['foo'],
       });
     });
@@ -50,7 +50,7 @@ describe('parseOptions', () => {
   test('count', () => {
     expect(parseOptions({ foo: { description, type: 'count' }, bar: { description, type: 'count' } })).toEqual({
       ...defaultOptions,
-      count: ['foo', 'bar'],
+      count: ['verbosity', 'foo', 'bar'],
     });
   });
 

@@ -34,10 +34,11 @@ export default async function bootstrap(
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
   const { verbose = 0 } = globalOptions || {};
   const { _: inputCommand, help, ...argv } = parser(inputArgs, {
-    alias: { help: 'h' },
+    alias: { help: 'h', verbosity: 'v' },
     boolean: ['help'],
     configuration: yargsConfiguration,
-    default: { help: false },
+    count: ['verbosity'],
+    default: { help: false, verbosity: 0 },
     string: ['help-format'],
   });
 
@@ -127,7 +128,10 @@ export default async function bootstrap(
     }, {}),
   };
 
-  const errorReport = validate(finalArgs, positionals, options);
+  const errorReport = validate(finalArgs, positionals, {
+    ...options,
+    verbosity: { type: 'count', description: 'increase verbosity for more log output' },
+  });
   if (!errorReport._isValid) {
     console.log(errorReport);
     return;

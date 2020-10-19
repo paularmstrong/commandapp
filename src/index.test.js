@@ -27,7 +27,7 @@ describe('bootstrap', () => {
       ).resolves.toBeUndefined();
       expect(globMock).toHaveBeenCalledWith('/rootDir/subcommands/**/*', { nodir: true });
       expect(requireMock).toHaveBeenCalledWith('/rootDir/subcommands/test-command.js');
-      expect(handlerSpy).toHaveBeenCalledWith({ _: {} });
+      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 });
     });
   });
 
@@ -80,7 +80,7 @@ describe('bootstrap', () => {
       ).resolves.toBeUndefined();
       expect(globMock).toHaveBeenCalledWith('/rootDir/**/*', { nodir: true });
       expect(requireMock).toHaveBeenCalledWith('/rootDir/food/test-command.js');
-      expect(handlerSpy).toHaveBeenCalledWith({ _: {} });
+      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 });
     });
   });
 
@@ -107,7 +107,10 @@ describe('bootstrap', () => {
         )
       ).resolves.toBeUndefined();
 
-      expect(handlerSpy).toHaveBeenCalledWith({ _: { topping1: 'lettuce', topping2: 'peppers', topping3: 'onions' } });
+      expect(handlerSpy).toHaveBeenCalledWith({
+        _: { topping1: 'lettuce', topping2: 'peppers', topping3: 'onions' },
+        verbosity: 0,
+      });
     });
 
     test('maps positionals using greedy', async () => {
@@ -130,7 +133,10 @@ describe('bootstrap', () => {
           requireMock
         )
       ).resolves.toBeUndefined();
-      expect(handlerSpy).toHaveBeenCalledWith({ _: { shell: 'hard', toppings: ['lettuce', 'peppers', 'onions'] } });
+      expect(handlerSpy).toHaveBeenCalledWith({
+        _: { shell: 'hard', toppings: ['lettuce', 'peppers', 'onions'] },
+        verbosity: 0,
+      });
     });
 
     test('throws if greedy used before last', async () => {
