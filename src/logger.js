@@ -6,6 +6,22 @@ type LoggerOptions = {|
   stderr?: stream$Writable,
 |};
 
+function stringify(item: mixed): string {
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  if (Array.isArray(item) || (typeof item === 'object' && (item === null || item.constructor === Object))) {
+    return JSON.stringify(item, null, 2);
+  }
+
+  if (item instanceof Date) {
+    return item.toISOString();
+  }
+
+  return `${String(item)}`;
+}
+
 export default class Logger {
   +_verbosity: number;
   +_stdout: stream$Writable;
@@ -45,45 +61,46 @@ export default class Logger {
     if (this._children.length) {
       this._children[0].isActive = true;
       this._children[0].flushStdout();
+      this._children[0].flushStderr();
     }
   };
 
-  log(output: string): void {
+  log(output: mixed): void {
     this.writeStdout(output);
   }
 
   // -v 0
-  error(output: string): void {
+  error(output: mixed): void {
     this.writeStderr(output);
   }
 
   // -v 1
-  warn(output: string): void {
+  warn(output: mixed): void {
     if (this._verbosity >= 1) {
       this.writeStderr(output);
     }
   }
 
   // -v 2
-  info(output: string): void {
+  info(output: mixed): void {
     if (this._verbosity >= 2) {
       this.writeStderr(output);
     }
   }
 
   // -v 3
-  debug(output: string): void {
+  debug(output: mixed): void {
     if (this._verbosity >= 3) {
       this.writeStderr(output);
     }
   }
 
-  writeStdout(output: string | Buffer): void {
-    this._stdout.write(`${output.toString()}\n`.replace(/\n{2,}$/, ''));
+  writeStdout(output: mixed): void {
+    this._stdout.write(`${stringify(output)}\n`.replace(/\n{2,}$/, ''));
   }
 
-  writeStderr(output: string | Buffer): void {
-    this._stderr.write(`${output.toString()}\n`.replace(/\n{2,}$/, ''));
+  writeStderr(output: mixed): void {
+    this._stderr.write(`${stringify(output)}\n`.replace(/\n{2,}$/, ''));
   }
 }
 
@@ -95,8 +112,8 @@ type ChildLoggerOptions = {|
 |};
 
 class ChildLogger extends Logger {
-  +_stdoutBuffer: Array<string> = [];
-  +_stderrBuffer: Array<string> = [];
+  +_stdoutBuffer: Array<mixed> = [];
+  +_stderrBuffer: Array<mixed> = [];
   +_onEnd: (logger: ChildLogger) => void;
   +_requestActivate: (logger: ChildLogger) => void;
 
@@ -121,40 +138,41 @@ class ChildLogger extends Logger {
     this._onEnd(this);
   }
 
-  writeStdout(output: string | Buffer) {
+  writeStdout(output: mixed) {
     this._requestActivate(this);
     if (this.isActive) {
       super.writeStdout(output);
       return;
     }
 
-    this._stdoutBuffer.push(output.toString());
+    this._stdoutBuffer.push(output);
   }
 
   flushStdout() {
     if (!this._stdoutBuffer.length) {
       return;
     }
-    super.writeStdout(this._stdoutBuffer.join(''));
-    this._stdoutBuffer.splice(0, this._stdoutBuffer.length);
+    while (this._stdoutBuffer.length > 0) {
+      super.writeStdout(this._stdoutBuffer.shift());
+    }
   }
 
-  writeStderr(output: string | Buffer) {
+  writeStderr(output: mixed) {
     this._requestActivate(this);
     if (this.isActive) {
       super.writeStderr(output);
       return;
     }
 
-    this._stderrBuffer.push(output.toString());
-    this._stderrBuffer.splice(0, this._stderrBuffer.length);
+    this._stderrBuffer.push(output);
   }
 
   flushStderr() {
     if (!this._stderrBuffer.length) {
       return;
     }
-    super.writeStderr(this._stderrBuffer.join(''));
-    this._stderrBuffer.splice(0, this._stdoutBuffer.length);
+    while (this._stderrBuffer.length > 0) {
+      super.writeStderr(this._stderrBuffer.shift());
+    }
   }
 }

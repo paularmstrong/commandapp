@@ -85,7 +85,7 @@ export default async function bootstrap(
   const resolvedCommand = resolveCommand(commands, inputCommand);
 
   if (!resolvedCommand) {
-    logger.error(JSON.stringify(commands, null, 2));
+    logger.error(commands);
     return;
   }
 
@@ -136,7 +136,7 @@ export default async function bootstrap(
     verbosity: { type: 'count', description: 'increase verbosity for more log output' },
   });
   if (!errorReport._isValid) {
-    logger.error(JSON.stringify(errorReport, null, 2));
+    logger.error(errorReport);
     return;
   }
 
