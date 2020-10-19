@@ -1,5 +1,6 @@
 // @flow
 import glob from 'glob';
+import Logger from './logger';
 import parser from 'yargs-parser';
 import path from 'path';
 import parseOptions, { validate } from './options';
@@ -33,14 +34,16 @@ export default async function bootstrap(
 ) {
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
   const { verbose = 0 } = globalOptions || {};
-  const { _: inputCommand, help, ...argv } = parser(inputArgs, {
+  const { _: inputCommand, help, verbosity, ...argv } = parser(inputArgs, {
     alias: { help: 'h', verbosity: 'v' },
     boolean: ['help'],
     configuration: yargsConfiguration,
     count: ['verbosity'],
-    default: { help: false, verbosity: 0 },
+    default: { help: false, verbosity: verbose },
     string: ['help-format'],
   });
+
+  const logger = new Logger({ verbosity: parseInt(verbosity, 10) });
 
   const resolvedSubcommandDir =
     typeof subcommandDir === 'string' && subcommandDir.length ? path.join(rootDir, subcommandDir) : rootDir;
@@ -82,7 +85,7 @@ export default async function bootstrap(
   const resolvedCommand = resolveCommand(commands, inputCommand);
 
   if (!resolvedCommand) {
-    console.log(commands);
+    logger.error(JSON.stringify(commands, null, 2));
     return;
   }
 
@@ -133,7 +136,7 @@ export default async function bootstrap(
     verbosity: { type: 'count', description: 'increase verbosity for more log output' },
   });
   if (!errorReport._isValid) {
-    console.log(errorReport);
+    logger.error(JSON.stringify(errorReport, null, 2));
     return;
   }
 
