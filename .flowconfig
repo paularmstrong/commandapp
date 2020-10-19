@@ -14,7 +14,7 @@ flow-typed
 all=error
 
 [options]
-all=true
+all=false
 babel_loose_array_spread=true
 emoji=true
 esproposal.export_star_as=enable

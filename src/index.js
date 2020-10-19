@@ -1,3 +1,4 @@
+// @flow
 import glob from 'glob';
 import parser from 'yargs-parser';
 import path from 'path';

@@ -1,3 +1,4 @@
+// @flow
 import { type YargsParserOptions } from 'yargs-parser';
 
 type CommandOption = {|
@@ -141,8 +142,14 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
       memo[key] = [];
       return memo;
     },
-    { _isValid: true, _: Object.keys(positionals).reduce((memo, key) => {
-      memo[key] = []; return memo;}, {}), _unknown: [] }
+    {
+      _isValid: true,
+      _: Object.keys(positionals).reduce((memo, key) => {
+        memo[key] = [];
+        return memo;
+      }, {}),
+      _unknown: [],
+    }
   );
   getRequiredOptions(options).forEach((requiredKey) => {
     if (!(requiredKey in argv)) {
@@ -153,10 +160,12 @@ export function validate<P: CommandPositionals, O: CommandOptions>(
 
   getRequiredOptions(positionals).forEach((requiredPositional) => {
     if (!(requiredPositional in argv._)) {
-      errors._[requiredPositional].push(new Error(`No value provided for required positional "<${requiredPositional}>"`))
+      errors._[requiredPositional].push(
+        new Error(`No value provided for required positional "<${requiredPositional}>"`)
+      );
       errors._isValid = false;
     }
-  })
+  });
 
   Object.entries(argv).forEach(([argKey, argValue]) => {
     if (argKey === '_') {

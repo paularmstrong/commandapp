@@ -1,3 +1,4 @@
+// @flow
 import bootstrap from '.';
 import glob from 'glob';
 

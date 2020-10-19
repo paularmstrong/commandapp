@@ -1,3 +1,4 @@
+// @flow
 import parseOptions, { validate } from './options';
 
 const defaultOptions = Object.freeze({
@@ -110,22 +111,23 @@ describe('validate', () => {
     test('required positional not provided', () => {
       expect(
         // $FlowExpectedError
-        validate({ _: {} }, { foo: { required: true, description: 'required positional' }}, {})).toEqual({
-          _isValid: false,
-        _: { foo: [new Error('No value provided for required positional "<foo>"')]},
-        _unknown: []
-      })
+        validate({ _: {} }, { foo: { required: true, description: 'required positional' } }, {})
+      ).toEqual({
+        _isValid: false,
+        _: { foo: [new Error('No value provided for required positional "<foo>"')] },
+        _unknown: [],
+      });
     });
 
     test('required positional provided', () => {
       expect(
         // $FlowFixMe this should be working
-        validate({ _: { foo: 'foo-value' } }, { foo: { required: true, description: 'required positional' }}, {})).
-      toEqual({
+        validate({ _: { foo: 'foo-value' } }, { foo: { required: true, description: 'required positional' } }, {})
+      ).toEqual({
         _isValid: true,
         _: { foo: [] },
-        _unknown: []
-      })
+        _unknown: [],
+      });
     });
   });
 
@@ -154,7 +156,7 @@ describe('validate', () => {
       });
     });
 
-      test('required option not provided', () => {
+    test('required option not provided', () => {
       expect(
         // $FlowExpectedError
         validate({ _: {} }, {}, { foo: { description, type: 'string', required: true } })

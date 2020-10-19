@@ -1,3 +1,4 @@
+// @flow
 import type { Argv } from '../../src';
 
 export const description = 'This is the description for the command $0';

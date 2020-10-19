@@ -1,3 +1,4 @@
+// @flow
 import type { Argv } from '../../../src';
 
 export const alias = 'foo';

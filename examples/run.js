@@ -1,3 +1,4 @@
+// @flow
 const path = require('path');
 
 require('@babel/register')({
