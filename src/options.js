@@ -10,15 +10,19 @@ type CommandOption = {|
 type ArrayOption = {| ...CommandOption, type: 'array' |};
 type ArrayOptionRequired = {| ...ArrayOption, required: true |};
 type ArrayOptionDefault = {| ...ArrayOption, default: Array<string> |};
+
 type BooleanOption = {| ...CommandOption, type: 'boolean' |};
 type BooleanOptionRequired = {| ...BooleanOption, required: true |};
 type BooleanOptionDefault = {| ...BooleanOption, default: boolean |};
+
 type CountOption = {| ...CommandOption, type: 'count' |};
 type CountOptionRequired = {| ...CountOption, required: true |};
 type CountOptionDefault = {| ...CountOption, default: number |};
+
 type NumberOption = {| ...CommandOption, type: 'number' |};
 type NumberOptionRequired = {| ...NumberOption, required: true |};
 type NumberOptionDefault = {| ...NumberOption, default: number |};
+
 type StringOption = {| ...CommandOption, type: 'string', choices?: Array<string> |};
 type StringOptionRequired = {| ...StringOption, required: true |};
 type StringOptionDefault = {| ...StringOption, default: string |};
@@ -45,7 +49,7 @@ type ExtractOption = ExtractArrayOption &
   ExtractNumberOption &
   ExtractStringOption;
 
-export type CommandOptions = {|
+export type Options = {|
   [key: string]:
     | ArrayOption
     | ArrayOptionDefault
@@ -78,17 +82,30 @@ type ExtractGreedyPositional = (GreedyPositional) => Array<string>;
 
 type ExtractPositional = ExtractRequiredPositional & ExtractGreedyPositional & ExtractPlainPositional;
 
-export type CommandPositionals = {|
+export type Positionals = {|
   [key: string]: GreedyPositional | RequiredPositional | Positional,
 |};
 
-export type Argv<pos: CommandPositionals, opts: CommandOptions> = {|
+export type Argv<pos: Positionals, opts: Options> = {|
   ...$ObjMap<opts, ExtractOption>,
   _: $ObjMap<pos, ExtractPositional>,
 |};
 
-export default function parseOptions(options: CommandOptions): YargsParserOptions {
-  const parserOptions: YargsParserOptions = {
+export type Examples = Array<{ code: string, description: string }>;
+export type Middleware = (args: {}) => Promise<{}>;
+export type Command = {
+  alias?: string,
+  command: string,
+  description: string,
+  examples: Examples,
+  handler: <T>(args: T) => Promise<void>,
+  middleware?: Array<Middleware>,
+  options: Options,
+  positionals: Positionals,
+};
+
+export default function parseOptions(options: Options): YargsParserOptions {
+  const parserOptions = {
     alias: { help: 'h', verbosity: 'v' },
     array: [],
     boolean: ['help'],
@@ -123,7 +140,7 @@ export default function parseOptions(options: CommandOptions): YargsParserOption
   return parserOptions;
 }
 
-function getRequiredOptions(options: CommandOptions | CommandPositionals): Array<string> {
+function getRequiredOptions(options: Options | Positionals): Array<string> {
   return Object.keys(options).reduce((memo, argKey) => {
     if ('required' in options[argKey] && typeof options[argKey].required === 'boolean' && options[argKey].required) {
       memo.push(argKey);
@@ -132,7 +149,7 @@ function getRequiredOptions(options: CommandOptions | CommandPositionals): Array
   }, []);
 }
 
-export function validate<P: CommandPositionals, O: CommandOptions>(
+export function validate<P: Positionals, O: Options>(
   argv: Argv<P, O>,
   positionals: P,
   options: O

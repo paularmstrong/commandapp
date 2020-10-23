@@ -3,9 +3,12 @@ import type { Argv } from '../../src';
 
 export const description = 'This is the description for the command $0';
 
-export const examples = [];
-
-export const positionals = {};
+export const examples = [
+  {
+    description: 'Add items to an array type',
+    code: 'node examples/run.js option-types --array=item0 --array=item1',
+  },
+];
 
 export const options = {
   array: {
@@ -85,9 +88,7 @@ export const options = {
   },
 };
 
-export const middleware = [];
-
-export const handler = async (argv: Argv<typeof positionals, typeof options>) => {
+export const handler = async (argv: Argv<{}, typeof options>) => {
   const array: Array<string> | void = argv.array;
   const arrayDefaulted: Array<string> = argv['array-defaulted'];
   const arrayRequired: Array<string> = argv['array-required'];

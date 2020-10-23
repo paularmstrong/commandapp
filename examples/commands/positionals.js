@@ -5,8 +5,6 @@ export const description = 'This is the description for the command "foo"';
 
 export const alias = 'pos itional';
 
-export const examples = [];
-
 export const positionals = {
   'first-positional': {
     description: 'This is a required first positional',
@@ -19,11 +17,7 @@ export const positionals = {
   },
 };
 
-export const options = {};
-
-export const middleware = [];
-
-export const handler = async (argv: Argv<typeof positionals, typeof options>) => {
+export const handler = async (argv: Argv<typeof positionals, {}>) => {
   console.log('hello from positionals command');
   console.log('argv', argv);
 };
