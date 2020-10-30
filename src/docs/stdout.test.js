@@ -6,7 +6,11 @@ const mockCommand = {
   examples: [{ code: 'this is my example code', description: "this is my example code's description" }],
   command: 'mock-command',
   handler: async function <T>(args: T) {},
-  positionals: {},
+  positionals: {
+    'foo-positional': { description: 'the foo positional is this one', required: true },
+    'optional-positional': { description: 'this positional is optional' },
+    'greedy-positional': { description: 'allows a positional to take 1 or more', greedy: true },
+  },
   options: {
     tacos: {
       type: 'string',
@@ -28,28 +32,58 @@ const mockCommand = {
 };
 
 describe('stdout formatter', () => {
-  test('just a test', async () => {
+  test('single command', async () => {
     expect(await formatter(mockCommand)).toMatchInlineSnapshot(`
-      "
-      mock-command
+      "mock-command
+        mock command description
 
-      mock command description
-
+      Positionals
+        <foo-positional>          the foo positional is
+                                  this one
+        [optional-positional]     this positional is
+                                  optional
+        [greedy-positional...]    allows a positional to
+                                  take 1 or more
 
       Options
+        --tacos       do you like tacos?                [\\"yes\\", \\"no\\"][default: \\"yes\\"]
+        --churros     do you like tacos?                [string][required]
+        --burritos    do you like burritos?             [boolean][default: false]
 
-      | key | description | type | default | required |
-      | --- | ----------- | ---- | ------- | -------- |
-      | tacos | do you like tacos? | string (choices: 'yes', 'no') | yes |  |
-      | churros | do you like tacos? | string |  | ✅ |
-      | burritos | do you like burritos? | boolean |  |  |
-
-      ### Examples
+      Examples
 
       this is my example code's description
+          this is my example code
+      "
+    `);
+  });
 
-        this is my example code
+  test('multiple commands', async () => {
+    expect(await formatter([mockCommand, mockCommand, mockCommand])).toMatchInlineSnapshot(`
+      "mock-command
+        mock command description
 
+      Commands
+        mock-command    mock command description
+        mock-command    mock command description
+
+      Positionals
+        <foo-positional>          the foo positional is
+                                  this one
+        [optional-positional]     this positional is
+                                  optional
+        [greedy-positional...]    allows a positional to
+                                  take 1 or more
+
+      Options
+        --tacos       do you like tacos?                [\\"yes\\", \\"no\\"][default: \\"yes\\"]
+        --churros     do you like tacos?                [string][required]
+        --burritos    do you like burritos?             [boolean][default: false]
+
+      Examples
+
+      this is my example code's description
+          this is my example code
       "
     `);
   });
