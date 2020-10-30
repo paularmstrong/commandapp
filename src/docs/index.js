@@ -7,12 +7,14 @@ import type { Command } from '../options';
 
 type Formatter = (tree: Command | Array<Command>) => Promise<string>;
 
-const formatters: { [key: string]: Formatter } = {
+const formatters = {
   json: jsonFormatter,
   manpage: manpageFormatter,
   markdown: markdownFormatter,
   stdout: stdoutFormatter,
 };
+
+export const formatTypes: Array<string> = Object.keys(formatters);
 
 function registerFormatter(name: string, formatter: Formatter): void {
   formatters[name] = formatter;

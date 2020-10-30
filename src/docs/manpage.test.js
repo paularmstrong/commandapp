@@ -30,7 +30,7 @@ const mockCommand = {
 describe('manpage formatter', () => {
   test('just a test', async () => {
     expect(await manpageFormatter(mockCommand)).toMatchInlineSnapshot(`
-      ".TH \\"mock-command\\" 1 \\"10/23/2020\\"
+      ".TH \\"mock-command\\" 1 \\"10/30/2020\\"
       .SH NAME
       mock-command
       .SH DESCRIPTION

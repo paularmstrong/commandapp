@@ -1,6 +1,6 @@
 // @flow
 import glob from 'glob';
-import formatHelp from './docs';
+import formatHelp, { formatTypes } from './docs';
 import Logger from './logger';
 import parser from 'yargs-parser';
 import path from 'path';
@@ -8,7 +8,14 @@ import parseOptions, { validate } from './options';
 import type { Argv, Command, Options, Positionals } from './options';
 
 export type { Argv, Command } from './options';
-export type Config = { ignoreCommands?: RegExp, rootDir?: string, subcommandDir?: string };
+export type Config = {|
+  ignoreCommands?: RegExp,
+  description?: string,
+  name?: string,
+  options?: Options,
+  rootDir?: string,
+  subcommandDir?: string,
+|};
 export type GlobalOptions = { verbose?: number };
 
 const ignoreCommandRegex = /(\/__\w+__\/|\.test\.|\.spec\.)/;
@@ -77,7 +84,36 @@ export default async function bootstrap(
 
   if (!resolvedCommand) {
     if (Boolean(help)) {
-      logger.log(await formatHelp(commands, helpFormat));
+      const { name = process.argv[1], description = '', options = {} } = config || {};
+      logger.log(
+        await formatHelp(
+          [
+            {
+              command: name,
+              description,
+              handler: async () => {},
+              options: {
+                ...options,
+                help: { alias: 'h', description: 'Get help documentation', type: 'boolean' },
+                'help-format': {
+                  description: 'Get help documentation in the given format',
+                  type: 'string',
+                  choices: formatTypes,
+                },
+                verbosity: {
+                  type: 'count',
+                  description: "Increase the logger's verbosity",
+                },
+              },
+              positionals: {},
+              middleware: [],
+              examples: [],
+            },
+            ...commands,
+          ],
+          helpFormat
+        )
+      );
       return;
     }
     logger.error(commands);

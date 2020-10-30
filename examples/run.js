@@ -7,4 +7,6 @@ require('@babel/register')({
 
 const bootstrap = require('../src').default;
 
-bootstrap({ rootDir: __dirname, subcommandDir: 'commands' });
+const description = 'My cool example CLI';
+
+bootstrap({ name: 'example', description, rootDir: __dirname, subcommandDir: 'commands' });
