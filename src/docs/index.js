@@ -1,6 +1,5 @@
 // @flow
 import jsonFormatter from './json';
-import manpageFormatter from './manpage';
 import markdownFormatter from './markdown';
 import stdoutFormatter from './stdout';
 import type { Command } from '../options';
@@ -9,7 +8,6 @@ type Formatter = (tree: Command | Array<Command>) => Promise<string>;
 
 const formatters = {
   json: jsonFormatter,
-  manpage: manpageFormatter,
   markdown: markdownFormatter,
   stdout: stdoutFormatter,
 };
