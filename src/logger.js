@@ -47,7 +47,7 @@ export default class Logger {
     return child;
   }
 
-  requestActivate = (child: ChildLogger) => {
+  requestActivate: (child: ChildLogger) => void = (child) => {
     if (!this._children.some((child) => child.isActive)) {
       child.isActive = true;
       child.flushStdout();
@@ -55,7 +55,7 @@ export default class Logger {
     }
   };
 
-  onEnd = (child: ChildLogger) => {
+  onEnd: (child: ChildLogger) => void = (child) => {
     const childIndex = this._children.findIndex((childLogger) => childLogger === child);
     this._children.splice(childIndex, 1);
     if (this._children.length) {

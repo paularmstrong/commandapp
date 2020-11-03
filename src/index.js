@@ -1,26 +1,22 @@
 // @flow
 import glob from 'glob';
+import formatHelp, { formatTypes } from './docs';
 import Logger from './logger';
 import parser from 'yargs-parser';
 import path from 'path';
 import parseOptions, { validate } from './options';
-import type { Argv, CommandOptions, CommandPositionals } from './options';
+import type { Argv, Command, Options, Positionals } from './options';
 
-export type { Argv } from './options';
-export type Middleware = (args: {}) => Promise<{}>;
-export type Config = { ignoreCommands?: RegExp, rootDir?: string, subcommandDir?: string };
+export type { Argv, Command } from './options';
+export type Config = {|
+  ignoreCommands?: RegExp,
+  description?: string,
+  name?: string,
+  options?: Options,
+  rootDir?: string,
+  subcommandDir?: string,
+|};
 export type GlobalOptions = { verbose?: number };
-
-type Command = {
-  alias?: string,
-  command: string,
-  description: string,
-  examples: Array<string>,
-  handler: <T>(args: T) => Promise<void>,
-  middleware: Middleware,
-  options: CommandOptions,
-  positionals: CommandPositionals,
-};
 
 const ignoreCommandRegex = /(\/__\w+__\/|\.test\.|\.spec\.)/;
 
@@ -34,7 +30,7 @@ export default async function bootstrap(
 ) {
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
   const { verbose = 0 } = globalOptions || {};
-  const { _: inputCommand, help, verbosity, ...argv } = parser(inputArgs, {
+  const { _: inputCommand, help, verbosity, 'help-format': helpFormatInput, ...argv } = parser(inputArgs, {
     alias: { help: 'h', verbosity: 'v' },
     boolean: ['help'],
     configuration: yargsConfiguration,
@@ -42,6 +38,8 @@ export default async function bootstrap(
     default: { help: false, verbosity: verbose },
     string: ['help-format'],
   });
+
+  const helpFormat = typeof helpFormatInput === 'string' ? helpFormatInput : undefined;
 
   const logger = new Logger({ verbosity: parseInt(verbosity, 10) });
 
@@ -85,6 +83,39 @@ export default async function bootstrap(
   const resolvedCommand = resolveCommand(commands, inputCommand);
 
   if (!resolvedCommand) {
+    if (Boolean(help)) {
+      const { name = process.argv[1], description = '', options = {} } = config || {};
+      logger.log(
+        await formatHelp(
+          [
+            {
+              command: name,
+              description,
+              handler: async () => {},
+              options: {
+                ...options,
+                help: { alias: 'h', description: 'Get help documentation', type: 'boolean' },
+                'help-format': {
+                  description: 'Get help documentation in the given format',
+                  type: 'string',
+                  choices: formatTypes,
+                },
+                verbosity: {
+                  type: 'count',
+                  description: "Increase the logger's verbosity",
+                },
+              },
+              positionals: {},
+              middleware: [],
+              examples: [],
+            },
+            ...commands,
+          ],
+          helpFormat
+        )
+      );
+      return;
+    }
     logger.error(commands);
     return;
   }
@@ -101,7 +132,8 @@ export default async function bootstrap(
   } = resolvedCommand;
 
   if (Boolean(help)) {
-    console.log(options);
+    const { matchedAlias, ...command } = resolvedCommand;
+    logger.log(await formatHelp(command, helpFormat));
     return;
   }
 
@@ -113,7 +145,7 @@ export default async function bootstrap(
     (typeof alias === 'string' && matchedAlias ? alias : command).split(' ').length
   );
   const positionalKeys = Reflect.ownKeys(positionals);
-  const finalArgs: Argv<CommandPositionals, CommandOptions> = {
+  const finalArgs: Argv<Positionals, Options> = {
     ...parsedArgs,
     _: positionalKeys.reduce((memo, positionalKey, i) => {
       const opts = positionals[positionalKey];
