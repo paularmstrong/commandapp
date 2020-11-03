@@ -1,10 +1,32 @@
 // @flow
+import chalk from 'chalk';
+import random from 'random-seed';
+
 type LoggerOptions = {|
+  _random?: typeof random,
+  useColor?: boolean,
   interleave?: boolean,
   verbosity?: number,
   stdout?: stream$Writable,
   stderr?: stream$Writable,
 |};
+
+type LogLevel = 'log' | 'error' | 'warn' | 'info' | 'debug';
+
+const prefixColors: Array<string> = [
+  '#a6cee3',
+  '#1f78b4',
+  '#b2df8a',
+  '#33a02c',
+  '#fb9a99',
+  '#e31a1c',
+  '#fdbf6f',
+  '#ff7f00',
+  '#cab2d6',
+  '#6a3d9a',
+  '#ffff99',
+  '#b15928',
+];
 
 function stringify(item: mixed): string {
   if (typeof item === 'string') {
@@ -28,27 +50,55 @@ export default class Logger {
   +_stdout: stream$Writable;
   +_stderr: stream$Writable;
   +_children: Array<ChildLogger> = [];
+  +_chalk: typeof chalk;
+  +_useColor: boolean;
 
   _lastTimestamp: number = Date.now();
+  +_random: typeof random;
 
-  constructor({ verbosity = 0, interleave = false, stdout = process.stdout, stderr = process.stderr }: LoggerOptions) {
+  constructor({
+    useColor,
+    verbosity = 0,
+    interleave = false,
+    stdout = process.stdout,
+    stderr = process.stderr,
+    _random = random.create(),
+  }: LoggerOptions) {
+    this._useColor = Boolean(useColor === true ? true : useColor === false ? false : chalk.supportsColor);
+    this._chalk = new chalk.Instance({
+      level: this._useColor ? 1 : 0,
+    });
     this._verbosity = verbosity;
     this._interleave = interleave;
     this._stdout = stdout;
     this._stderr = stderr;
+    this._random = _random;
   }
 
   createChild(prefix: string): ChildLogger {
+    const color = this._pickColor();
     const child = new ChildLogger({
       verbosity: this._verbosity,
       stdout: this._stdout,
       stderr: this._stderr,
+      color,
       prefix,
       onEnd: this.onEnd,
       requestActivate: this.requestActivate,
+      useColor: this._useColor,
     });
     this._children.push(child);
     return child;
+  }
+
+  _pickColor(): string {
+    const usedColors = this._children.map((child) => child.color);
+    let availableColors = prefixColors.filter((color) => !usedColors.includes(color));
+    if (availableColors.length === 0) {
+      availableColors = prefixColors;
+    }
+    const colorIndex = this._random(availableColors.length);
+    return availableColors[colorIndex];
   }
 
   requestActivate: (child: ChildLogger) => void = (child) => {
@@ -77,32 +127,32 @@ export default class Logger {
   // [tacos, burritos, churros, nachos]
 
   log(output: mixed): void {
-    this.writeStdout(output);
+    this.writeStdout(`${this._chalk.bgCyan.bold(' LOG ')} ${stringify(output)}`);
   }
 
   // -v 0
   error(output: mixed): void {
-    this.writeStderr(output);
+    this.writeStderr(`${this._chalk.bgRed.bold(' ERROR ')} ${stringify(output)}`);
   }
 
   // -v 1
   warn(output: mixed): void {
     if (this._verbosity >= 1) {
-      this.writeStderr(output);
+      this.writeStderr(`${this._chalk.bgYellow.bold(' WARN ')} ${stringify(output)}`);
     }
   }
 
   // -v 2
   info(output: mixed): void {
     if (this._verbosity >= 2) {
-      this.writeStderr(output);
+      this.writeStderr(`${this._chalk.bgBlue.bold(' INFO ')} ${stringify(output)}`);
     }
   }
 
   // -v 3
   debug(output: mixed): void {
     if (this._verbosity >= 3) {
-      this.writeStderr(output);
+      this.writeStderr(`${this._chalk.bgMagenta.bold(' DEBUG ')} ${stringify(output)}`);
     }
   }
 
@@ -113,13 +163,13 @@ export default class Logger {
     return '';
   }
 
-  writeStdout(output: mixed, timestamp: number = Date.now(), prefix?: string): void {
-    this._stdout.write(`${prefix || ''}${stringify(output)}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
+  writeStdout(output: string, timestamp: number = Date.now(), prefix?: string): void {
+    this._stdout.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
     this._lastTimestamp = timestamp;
   }
 
-  writeStderr(output: mixed, timestamp: number = Date.now(), prefix?: string): void {
-    this._stderr.write(`${prefix || ''}${stringify(output)}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
+  writeStderr(output: string, timestamp: number = Date.now(), prefix?: string): void {
+    this._stderr.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
     this._lastTimestamp = timestamp;
   }
 }
@@ -127,6 +177,7 @@ export default class Logger {
 type ChildLoggerOptions = {|
   ...LoggerOptions,
   prefix: string,
+  color: string,
   onEnd: (logger: ChildLogger) => void,
   requestActivate: (logger: ChildLogger) => void,
 |};
@@ -140,13 +191,15 @@ class ChildLogger extends Logger {
   +_requestActivate: (logger: ChildLogger) => void;
 
   +prefix: string;
+  +color: string;
 
   isActive: boolean = false;
 
   constructor(options: ChildLoggerOptions) {
-    const { onEnd, prefix, requestActivate, ...parentOptions } = options;
+    const { onEnd, prefix, color, requestActivate, ...parentOptions } = options;
     super(parentOptions);
     this.prefix = prefix;
+    this.color = color;
     this._onEnd = onEnd;
     this._requestActivate = requestActivate;
   }
@@ -155,7 +208,7 @@ class ChildLogger extends Logger {
     throw new Error('Cannot create sub-children');
   }
 
-  end() {
+  end(timestamp?: number = Date.now()) {
     if (this.isActive) {
       this.isActive = false;
       this._onEnd(this);
@@ -165,10 +218,15 @@ class ChildLogger extends Logger {
     this._stdoutBuffer.push({ timestamp: Date.now(), contents: endSentinel });
   }
 
-  writeStdout(output: mixed, timestamp: number = Date.now()) {
+  getTimeDiff(timestamp: number): string {
+    const text = super.getTimeDiff(timestamp);
+    return this._chalk.hex(this.color)(text);
+  }
+
+  writeStdout(output: string, timestamp: number = Date.now()) {
     this._requestActivate(this);
     if (this.isActive) {
-      super.writeStdout(output, timestamp, `[ ${this.prefix} ] `);
+      super.writeStdout(output, timestamp, this._chalk.hex(this.color).bold(` ${this.prefix} `));
       return;
     }
 
@@ -182,17 +240,17 @@ class ChildLogger extends Logger {
     while (this._stdoutBuffer.length > 0) {
       const { contents, timestamp } = this._stdoutBuffer.shift();
       if (contents === endSentinel) {
-        this.end();
+        this.end(timestamp);
         return;
       }
-      this.writeStdout(contents, timestamp);
+      this.writeStdout(stringify(contents), timestamp);
     }
   }
 
-  writeStderr(output: mixed, timestamp: number = Date.now()) {
+  writeStderr(output: string, timestamp: number = Date.now()) {
     this._requestActivate(this);
     if (this.isActive) {
-      super.writeStderr(output, timestamp, `[ ${this.prefix} ] `);
+      super.writeStderr(output, timestamp, this._chalk.hex(this.color).bold(` ${this.prefix} `));
       return;
     }
 
@@ -205,7 +263,7 @@ class ChildLogger extends Logger {
     }
     while (this._stderrBuffer.length > 0) {
       const { contents, timestamp } = this._stderrBuffer.shift();
-      this.writeStderr(contents, timestamp);
+      this.writeStderr(stringify(contents), timestamp);
     }
   }
 }

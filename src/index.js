@@ -1,4 +1,5 @@
 // @flow
+import chalk from 'chalk';
 import glob from 'glob';
 import formatHelp, { formatTypes } from './docs';
 import Logger from './logger';
@@ -20,7 +21,8 @@ export type Config = {|
 
 export type GlobalOptions = {|
   verbose?: number,
-  interleave: boolean,
+  'logger-async'?: boolean,
+  useColor?: boolean,
 |};
 
 const ignoreCommandRegex = /(\/__\w+__\/|\.test\.|\.spec\.)/;
@@ -34,19 +36,27 @@ export default async function bootstrap(
   commandRequire: typeof require = require
 ) {
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
-  const { verbose = 0 } = globalOptions || {};
-  const { _: inputCommand, help, 'help-format': helpFormatInput, interleave, verbosity, ...argv } = parser(inputArgs, {
+  const { verbose = 0, 'logger-async': defaultInterleave = false, useColor = chalk.supportsColor } =
+    globalOptions || {};
+  const {
+    _: inputCommand,
+    help,
+    'help-format': helpFormatInput,
+    'logger-async': loggerAsync,
+    verbosity,
+    ...argv
+  } = parser(inputArgs, {
     alias: { help: 'h', verbosity: 'v' },
-    boolean: ['help', 'interleave'],
+    boolean: ['help', 'logger-async'],
     configuration: yargsConfiguration,
     count: ['verbosity'],
-    default: { help: false, verbosity: verbose, interleave: false },
+    default: { help: false, verbosity: verbose, 'logger-async': defaultInterleave },
     string: ['help-format'],
   });
 
   const helpFormat = typeof helpFormatInput === 'string' ? helpFormatInput : undefined;
 
-  const logger = new Logger({ interleave: Boolean(interleave), verbosity: parseInt(verbosity, 10) });
+  const logger = new Logger({ interleave: Boolean(loggerAsync), useColor, verbosity: parseInt(verbosity, 10) });
 
   const resolvedSubcommandDir =
     typeof subcommandDir === 'string' && subcommandDir.length ? path.join(rootDir, subcommandDir) : rootDir;
@@ -105,9 +115,9 @@ export default async function bootstrap(
                   type: 'string',
                   choices: formatTypes,
                 },
-                interleave: {
+                'logger-async': {
                   type: 'boolean',
-                  description: 'Allow logger to interleave output of parallel child loggers',
+                  description: 'Allow logger to interleave output of parallel asynchronous child loggers',
                   default: false,
                 },
                 verbosity: {
@@ -177,7 +187,7 @@ export default async function bootstrap(
   const errorReport = validate(finalArgs, positionals, {
     ...options,
     verbosity: { type: 'count', description: 'increase verbosity for more log output' },
-    interleave: {
+    'logger-async': {
       type: 'boolean',
       description: 'Allow logger to interleave output of parallel child loggers',
     },
