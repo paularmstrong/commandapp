@@ -1,6 +1,6 @@
 // @flow
-
 type LoggerOptions = {|
+  interleave?: boolean,
   verbosity?: number,
   stdout?: stream$Writable,
   stderr?: stream$Writable,
@@ -24,12 +24,16 @@ function stringify(item: mixed): string {
 
 export default class Logger {
   +_verbosity: number;
+  +_interleave: boolean;
   +_stdout: stream$Writable;
   +_stderr: stream$Writable;
   +_children: Array<ChildLogger> = [];
 
-  constructor({ verbosity = 0, stdout = process.stdout, stderr = process.stderr }: LoggerOptions) {
+  _lastTimestamp: number = Date.now();
+
+  constructor({ verbosity = 0, interleave = false, stdout = process.stdout, stderr = process.stderr }: LoggerOptions) {
     this._verbosity = verbosity;
+    this._interleave = interleave;
     this._stdout = stdout;
     this._stderr = stderr;
   }
@@ -48,6 +52,11 @@ export default class Logger {
   }
 
   requestActivate: (child: ChildLogger) => void = (child) => {
+    if (this._interleave) {
+      child.isActive = true;
+      return;
+    }
+
     if (!this._children.some((child) => child.isActive)) {
       child.isActive = true;
       child.flushStdout();
@@ -60,10 +69,12 @@ export default class Logger {
     this._children.splice(childIndex, 1);
     if (this._children.length) {
       this._children[0].isActive = true;
-      this._children[0].flushStdout();
       this._children[0].flushStderr();
+      this._children[0].flushStdout();
     }
   };
+
+  // [tacos, burritos, churros, nachos]
 
   log(output: mixed): void {
     this.writeStdout(output);
@@ -95,12 +106,21 @@ export default class Logger {
     }
   }
 
-  writeStdout(output: mixed): void {
-    this._stdout.write(`${stringify(output)}\n`.replace(/\n{2,}$/, ''));
+  getTimeDiff(timestamp: number): string {
+    if (this._verbosity >= 3) {
+      return ` +${timestamp - this._lastTimestamp}ms`;
+    }
+    return '';
   }
 
-  writeStderr(output: mixed): void {
-    this._stderr.write(`${stringify(output)}\n`.replace(/\n{2,}$/, ''));
+  writeStdout(output: mixed, timestamp: number = Date.now(), prefix?: string): void {
+    this._stdout.write(`${prefix || ''}${stringify(output)}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
+    this._lastTimestamp = timestamp;
+  }
+
+  writeStderr(output: mixed, timestamp: number = Date.now(), prefix?: string): void {
+    this._stderr.write(`${prefix || ''}${stringify(output)}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
+    this._lastTimestamp = timestamp;
   }
 }
 
@@ -111,9 +131,11 @@ type ChildLoggerOptions = {|
   requestActivate: (logger: ChildLogger) => void,
 |};
 
+const endSentinel = Symbol.for('logger end');
+
 class ChildLogger extends Logger {
-  +_stdoutBuffer: Array<mixed> = [];
-  +_stderrBuffer: Array<mixed> = [];
+  +_stdoutBuffer: Array<{ timestamp: number, contents: mixed }> = [];
+  +_stderrBuffer: Array<{ timestamp: number, contents: mixed }> = [];
   +_onEnd: (logger: ChildLogger) => void;
   +_requestActivate: (logger: ChildLogger) => void;
 
@@ -134,18 +156,23 @@ class ChildLogger extends Logger {
   }
 
   end() {
-    this.isActive = false;
-    this._onEnd(this);
-  }
-
-  writeStdout(output: mixed) {
-    this._requestActivate(this);
     if (this.isActive) {
-      super.writeStdout(output);
+      this.isActive = false;
+      this._onEnd(this);
       return;
     }
 
-    this._stdoutBuffer.push(output);
+    this._stdoutBuffer.push({ timestamp: Date.now(), contents: endSentinel });
+  }
+
+  writeStdout(output: mixed, timestamp: number = Date.now()) {
+    this._requestActivate(this);
+    if (this.isActive) {
+      super.writeStdout(output, timestamp, `[ ${this.prefix} ] `);
+      return;
+    }
+
+    this._stdoutBuffer.push({ contents: output, timestamp });
   }
 
   flushStdout() {
@@ -153,18 +180,23 @@ class ChildLogger extends Logger {
       return;
     }
     while (this._stdoutBuffer.length > 0) {
-      super.writeStdout(this._stdoutBuffer.shift());
+      const { contents, timestamp } = this._stdoutBuffer.shift();
+      if (contents === endSentinel) {
+        this.end();
+        return;
+      }
+      this.writeStdout(contents, timestamp);
     }
   }
 
-  writeStderr(output: mixed) {
+  writeStderr(output: mixed, timestamp: number = Date.now()) {
     this._requestActivate(this);
     if (this.isActive) {
-      super.writeStderr(output);
+      super.writeStderr(output, timestamp, `[ ${this.prefix} ] `);
       return;
     }
 
-    this._stderrBuffer.push(output);
+    this._stderrBuffer.push({ contents: output, timestamp });
   }
 
   flushStderr() {
@@ -172,7 +204,8 @@ class ChildLogger extends Logger {
       return;
     }
     while (this._stderrBuffer.length > 0) {
-      super.writeStderr(this._stderrBuffer.shift());
+      const { contents, timestamp } = this._stderrBuffer.shift();
+      this.writeStderr(contents, timestamp);
     }
   }
 }

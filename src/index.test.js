@@ -1,6 +1,7 @@
 // @flow
 import bootstrap from '.';
 import glob from 'glob';
+import Logger from './logger';
 
 describe('bootstrap', () => {
   let globMock, requireMock;
@@ -27,7 +28,7 @@ describe('bootstrap', () => {
       ).resolves.toBeUndefined();
       expect(globMock).toHaveBeenCalledWith('/rootDir/subcommands/**/*', { nodir: true });
       expect(requireMock).toHaveBeenCalledWith('/rootDir/subcommands/test-command.js');
-      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 });
+      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 }, expect.any(Logger));
     });
   });
 
@@ -80,7 +81,7 @@ describe('bootstrap', () => {
       ).resolves.toBeUndefined();
       expect(globMock).toHaveBeenCalledWith('/rootDir/**/*', { nodir: true });
       expect(requireMock).toHaveBeenCalledWith('/rootDir/food/test-command.js');
-      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 });
+      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 }, expect.any(Logger));
     });
   });
 
@@ -107,10 +108,13 @@ describe('bootstrap', () => {
         )
       ).resolves.toBeUndefined();
 
-      expect(handlerSpy).toHaveBeenCalledWith({
-        _: { topping1: 'lettuce', topping2: 'peppers', topping3: 'onions' },
-        verbosity: 0,
-      });
+      expect(handlerSpy).toHaveBeenCalledWith(
+        {
+          _: { topping1: 'lettuce', topping2: 'peppers', topping3: 'onions' },
+          verbosity: 0,
+        },
+        expect.any(Logger)
+      );
     });
 
     test('maps positionals using greedy', async () => {
@@ -133,10 +137,13 @@ describe('bootstrap', () => {
           requireMock
         )
       ).resolves.toBeUndefined();
-      expect(handlerSpy).toHaveBeenCalledWith({
-        _: { shell: 'hard', toppings: ['lettuce', 'peppers', 'onions'] },
-        verbosity: 0,
-      });
+      expect(handlerSpy).toHaveBeenCalledWith(
+        {
+          _: { shell: 'hard', toppings: ['lettuce', 'peppers', 'onions'] },
+          verbosity: 0,
+        },
+        expect.any(Logger)
+      );
     });
 
     test('throws if greedy used before last', async () => {

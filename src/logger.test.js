@@ -84,7 +84,24 @@ describe('Logger', () => {
     const logger = new Logger({ verbosity: 3, stdout, stderr });
     logger.debug('some text');
     expect(stdout.toString()).toEqual('');
-    expect(stderr.toString()).toEqual('some text\n');
+    expect(stderr.toString()).toEqual('some text +0ms\n');
+  });
+
+  test('includes timing information for each step when verbosity >= 3', () => {
+    jest
+      .spyOn(Date, 'now')
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(10)
+      .mockReturnValueOnce(25)
+      .mockReturnValueOnce(45)
+      .mockReturnValueOnce(50);
+    const logger = new Logger({ verbosity: 3, stdout, stderr });
+    logger.error('error 1');
+    logger.log('log 1');
+    logger.log('log 2');
+    logger.warn('warn 1');
+    expect(stdout.toString()).toEqual('log 1 +15ms\nlog 2 +20ms\n');
+    expect(stderr.toString()).toEqual('error 1 +10ms\nwarn 1 +5ms\n');
   });
 
   describe('can log any value type', () => {
@@ -170,22 +187,43 @@ describe('Logger', () => {
     });
 
     test('buffers when multiple child loggers are running in parallel', () => {
-      const logger = new Logger({ verbosity: 3, stdout, stderr });
+      const logger = new Logger({ verbosity: 2, stdout, stderr });
       const firstChild = logger.createChild('firstChild');
       const secondChild = logger.createChild('secondChild');
 
-      firstChild.log('first child first log');
-      secondChild.log('second child first log');
-      firstChild.warn('first child first warn');
-      secondChild.warn('second child first warn');
-      firstChild.log('first child second log');
+      firstChild.log('first log');
+      secondChild.log('first log');
+      firstChild.warn('first warn');
+      secondChild.warn('first warn');
+      firstChild.log('second log');
 
-      expect(stdout.toString()).toEqual('first child first log\nfirst child second log\n');
-      expect(stderr.toString()).toEqual('first child first warn\n');
+      expect(stdout.toString()).toEqual('[ firstChild ] first log\n[ firstChild ] second log\n');
+      expect(stderr.toString()).toEqual('[ firstChild ] first warn\n');
       firstChild.end();
-      expect(stdout.toString()).toEqual('second child first log\n');
-      expect(stderr.toString()).toEqual('second child first warn\n');
+      expect(stdout.toString()).toEqual('[ secondChild ] first log\n');
+      expect(stderr.toString()).toEqual('[ secondChild ] first warn\n');
       secondChild.end();
+    });
+
+    test('can be interleaved', () => {
+      const logger = new Logger({ interleave: true, verbosity: 2, stdout, stderr });
+      const firstChild = logger.createChild('firstChild');
+      const secondChild = logger.createChild('secondChild');
+
+      firstChild.log('first log');
+      secondChild.log('first log');
+      firstChild.log('second log');
+      secondChild.log('second log');
+      secondChild.end();
+      firstChild.log('third log');
+      firstChild.end();
+
+      expect(stdout.toString()).toEqual(`[ firstChild ] first log
+[ secondChild ] first log
+[ firstChild ] second log
+[ secondChild ] second log
+[ firstChild ] third log
+`);
     });
   });
 });
