@@ -105,13 +105,13 @@ export type Command = {
   positionals: Positionals,
 };
 
-export default function parseOptions(options: Options): YargsParserOptions {
+export default function optionsToParserOptions(options: Options): YargsParserOptions {
   const parserOptions = {
-    alias: { help: 'h', verbosity: 'v' },
+    alias: {},
     array: [],
-    boolean: ['help'],
-    count: ['verbosity'],
-    default: { verbosity: 0 },
+    boolean: [],
+    count: [],
+    default: {},
     normalize: [],
     number: [],
     string: [],

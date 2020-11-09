@@ -28,7 +28,7 @@ describe('bootstrap', () => {
       ).resolves.toBeUndefined();
       expect(globMock).toHaveBeenCalledWith('/rootDir/subcommands/**/*', { nodir: true });
       expect(requireMock).toHaveBeenCalledWith('/rootDir/subcommands/test-command.js');
-      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 }, expect.any(Logger));
+      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0, 'logger-async': false }, expect.any(Logger));
     });
   });
 
@@ -81,7 +81,7 @@ describe('bootstrap', () => {
       ).resolves.toBeUndefined();
       expect(globMock).toHaveBeenCalledWith('/rootDir/**/*', { nodir: true });
       expect(requireMock).toHaveBeenCalledWith('/rootDir/food/test-command.js');
-      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0 }, expect.any(Logger));
+      expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0, 'logger-async': false }, expect.any(Logger));
     });
   });
 
@@ -112,6 +112,7 @@ describe('bootstrap', () => {
         {
           _: { topping1: 'lettuce', topping2: 'peppers', topping3: 'onions' },
           verbosity: 0,
+          'logger-async': false,
         },
         expect.any(Logger)
       );
@@ -141,6 +142,7 @@ describe('bootstrap', () => {
         {
           _: { shell: 'hard', toppings: ['lettuce', 'peppers', 'onions'] },
           verbosity: 0,
+          'logger-async': false,
         },
         expect.any(Logger)
       );

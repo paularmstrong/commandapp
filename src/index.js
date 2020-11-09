@@ -3,9 +3,9 @@ import chalk from 'chalk';
 import glob from 'glob';
 import formatHelp, { formatTypes } from './docs';
 import Logger from './logger';
-import parser from 'yargs-parser';
 import path from 'path';
-import parseOptions, { validate } from './options';
+import optionsToParserOptions, { validate } from './options';
+import parser, { type YargsParserOptions } from 'yargs-parser';
 import type { Argv, Command, Options, Positionals } from './options';
 
 export type { Argv, Command } from './options';
@@ -38,21 +38,30 @@ export default async function bootstrap(
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
   const { verbose = 0, 'logger-async': defaultInterleave = false, useColor = chalk.supportsColor } =
     globalOptions || {};
-  const {
-    _: inputCommand,
-    help,
-    'help-format': helpFormatInput,
-    'logger-async': loggerAsync,
-    verbosity,
-    ...argv
-  } = parser(inputArgs, {
-    alias: { help: 'h', verbosity: 'v' },
-    boolean: ['help', 'logger-async'],
-    configuration: yargsConfiguration,
-    count: ['verbosity'],
-    default: { help: false, verbosity: verbose, 'logger-async': defaultInterleave },
-    string: ['help-format'],
+
+  const globalCommandOptions = Object.freeze({
+    help: { alias: 'h', description: 'Get help documentation', type: 'boolean' },
+    'help-format': {
+      description: 'Get help documentation in the given format',
+      type: 'string',
+      choices: formatTypes,
+    },
+    'logger-async': {
+      type: 'boolean',
+      description: 'Allow logger to interleave output of parallel asynchronous child loggers',
+      default: false,
+    },
+    verbosity: {
+      type: 'count',
+      description: "Increase the logger's verbosity",
+      default: 0,
+    },
   });
+
+  const { _: inputCommand, help, 'help-format': helpFormatInput, 'logger-async': loggerAsync, verbosity } = parser(
+    inputArgs,
+    optionsToParserOptions(globalCommandOptions)
+  );
 
   const helpFormat = typeof helpFormatInput === 'string' ? helpFormatInput : undefined;
 
@@ -109,22 +118,7 @@ export default async function bootstrap(
               handler: async () => {},
               options: {
                 ...options,
-                help: { alias: 'h', description: 'Get help documentation', type: 'boolean' },
-                'help-format': {
-                  description: 'Get help documentation in the given format',
-                  type: 'string',
-                  choices: formatTypes,
-                },
-                'logger-async': {
-                  type: 'boolean',
-                  description: 'Allow logger to interleave output of parallel asynchronous child loggers',
-                  default: false,
-                },
-                verbosity: {
-                  type: 'count',
-                  description: "Increase the logger's verbosity",
-                  default: 0,
-                },
+                ...globalCommandOptions,
               },
               positionals: {},
               middleware: [],
@@ -159,7 +153,7 @@ export default async function bootstrap(
   }
 
   const { _: parsedPositionals, ...parsedArgs } = parser(inputArgs, {
-    ...parseOptions(options),
+    ...optionsToParserOptions({ ...options, ...globalCommandOptions }),
     configuration: yargsConfiguration,
   });
   const inputPositionals = parsedPositionals.slice(
@@ -186,11 +180,7 @@ export default async function bootstrap(
 
   const errorReport = validate(finalArgs, positionals, {
     ...options,
-    verbosity: { type: 'count', description: 'increase verbosity for more log output' },
-    'logger-async': {
-      type: 'boolean',
-      description: 'Allow logger to interleave output of parallel child loggers',
-    },
+    ...globalCommandOptions,
   });
   if (!errorReport._isValid) {
     logger.error(errorReport);

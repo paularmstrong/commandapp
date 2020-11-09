@@ -2,11 +2,11 @@
 import parseOptions, { validate } from './options';
 
 const defaultOptions = Object.freeze({
-  alias: { help: 'h', verbosity: 'v' },
+  alias: {},
   array: [],
-  boolean: ['help'],
-  count: ['verbosity'],
-  default: { verbosity: 0 },
+  boolean: [],
+  count: [],
+  default: {},
   normalize: [],
   number: [],
   string: [],
@@ -19,7 +19,7 @@ describe('parseOptions', () => {
     test('single alias', () => {
       expect(parseOptions({ foo: { description, alias: 'f', type: 'string' } })).toEqual({
         ...defaultOptions,
-        alias: { help: 'h', foo: 'f', verbosity: 'v' },
+        alias: { foo: 'f' },
         string: ['foo'],
       });
     });
@@ -27,7 +27,7 @@ describe('parseOptions', () => {
     test('array of aliases', () => {
       expect(parseOptions({ foo: { description, alias: ['f', 'b'], type: 'string' } })).toEqual({
         ...defaultOptions,
-        alias: { help: 'h', foo: ['f', 'b'], verbosity: 'v' },
+        alias: { foo: ['f', 'b'] },
         string: ['foo'],
       });
     });
@@ -43,14 +43,14 @@ describe('parseOptions', () => {
   test('boolean', () => {
     expect(parseOptions({ foo: { description, type: 'boolean' }, bar: { description, type: 'boolean' } })).toEqual({
       ...defaultOptions,
-      boolean: ['help', 'foo', 'bar'],
+      boolean: ['foo', 'bar'],
     });
   });
 
   test('count', () => {
     expect(parseOptions({ foo: { description, type: 'count' }, bar: { description, type: 'count' } })).toEqual({
       ...defaultOptions,
-      count: ['verbosity', 'foo', 'bar'],
+      count: ['foo', 'bar'],
     });
   });
 
@@ -64,7 +64,7 @@ describe('parseOptions', () => {
       ...defaultOptions,
       string: ['foo'],
       number: ['bar'],
-      default: { foo: 'foo default', bar: 2, verbosity: 0 },
+      default: { foo: 'foo default', bar: 2 },
     });
   });
 
