@@ -52,6 +52,7 @@ export default async function bootstrap(
       default: false,
     },
     verbosity: {
+      alias: 'v',
       type: 'count',
       description: "Increase the logger's verbosity",
       default: 0,
@@ -183,6 +184,7 @@ export default async function bootstrap(
     ...globalCommandOptions,
   });
   if (!errorReport._isValid) {
+    console.log(errorReport);
     logger.error(errorReport);
     return;
   }

@@ -13,21 +13,6 @@ type LoggerOptions = {|
 
 type LogLevel = 'log' | 'error' | 'warn' | 'info' | 'debug';
 
-const prefixColors: Array<string> = [
-  '#a6cee3',
-  '#1f78b4',
-  '#b2df8a',
-  '#33a02c',
-  '#fb9a99',
-  '#e31a1c',
-  '#fdbf6f',
-  '#ff7f00',
-  '#cab2d6',
-  '#6a3d9a',
-  '#ffff99',
-  '#b15928',
-];
-
 function stringify(item: mixed): string {
   if (typeof item === 'string') {
     return item;
@@ -66,7 +51,7 @@ export default class Logger {
   }: LoggerOptions) {
     this._useColor = Boolean(useColor === true ? true : useColor === false ? false : chalk.supportsColor);
     this._chalk = new chalk.Instance({
-      level: this._useColor ? 1 : 0,
+      level: this._useColor ? 3 : 0,
     });
     this._verbosity = verbosity;
     this._interleave = interleave;
@@ -91,14 +76,8 @@ export default class Logger {
     return child;
   }
 
-  _pickColor(): string {
-    const usedColors = this._children.map((child) => child.color);
-    let availableColors = prefixColors.filter((color) => !usedColors.includes(color));
-    if (availableColors.length === 0) {
-      availableColors = prefixColors;
-    }
-    const colorIndex = this._random(availableColors.length);
-    return availableColors[colorIndex];
+  _pickColor(): [number, number, number] {
+    return [this._random(360), this._random.intBetween(55, 100), this._random.intBetween(55, 100)];
   }
 
   requestActivate: (child: ChildLogger) => void = (child) => {
@@ -124,35 +103,33 @@ export default class Logger {
     }
   };
 
-  // [tacos, burritos, churros, nachos]
-
   log(output: mixed): void {
-    this.writeStdout(`${this._chalk.bgCyan.bold(' LOG ')} ${stringify(output)}`);
+    return this.writeStdout(`${this._chalk.bgCyan.bold(' LOG ')} ${stringify(output)}`);
   }
 
   // -v 0
   error(output: mixed): void {
-    this.writeStderr(`${this._chalk.bgRed.bold(' ERROR ')} ${stringify(output)}`);
+    return this.writeStderr(`${this._chalk.bgRed.bold(' ERROR ')} ${stringify(output)}`);
   }
 
   // -v 1
   warn(output: mixed): void {
     if (this._verbosity >= 1) {
-      this.writeStderr(`${this._chalk.bgYellow.bold(' WARN ')} ${stringify(output)}`);
+      return this.writeStderr(`${this._chalk.bgYellow.bold(' WARN ')} ${stringify(output)}`);
     }
   }
 
   // -v 2
   info(output: mixed): void {
     if (this._verbosity >= 2) {
-      this.writeStderr(`${this._chalk.bgBlue.bold(' INFO ')} ${stringify(output)}`);
+      return this.writeStderr(`${this._chalk.bgBlue.bold(' INFO ')} ${stringify(output)}`);
     }
   }
 
   // -v 3
   debug(output: mixed): void {
     if (this._verbosity >= 3) {
-      this.writeStderr(`${this._chalk.bgMagenta.bold(' DEBUG ')} ${stringify(output)}`);
+      return this.writeStderr(`${this._chalk.bgMagenta.bold(' DEBUG ')} ${stringify(output)}`);
     }
   }
 
@@ -164,12 +141,12 @@ export default class Logger {
   }
 
   writeStdout(output: string, timestamp: number = Date.now(), prefix?: string): void {
-    this._stdout.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
+    this._stdout.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''), 'utf8');
     this._lastTimestamp = timestamp;
   }
 
   writeStderr(output: string, timestamp: number = Date.now(), prefix?: string): void {
-    this._stderr.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''));
+    this._stderr.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''), 'utf8');
     this._lastTimestamp = timestamp;
   }
 }
@@ -177,11 +154,12 @@ export default class Logger {
 type ChildLoggerOptions = {|
   ...LoggerOptions,
   prefix: string,
-  color: string,
+  color: [number, number, number],
   onEnd: (logger: ChildLogger) => void,
   requestActivate: (logger: ChildLogger) => void,
 |};
 
+const startSentinel = Symbol.for('logger start');
 const endSentinel = Symbol.for('logger end');
 
 class ChildLogger extends Logger {
@@ -191,7 +169,7 @@ class ChildLogger extends Logger {
   +_requestActivate: (logger: ChildLogger) => void;
 
   +prefix: string;
-  +color: string;
+  +color: [number, number, number];
 
   isActive: boolean = false;
 
@@ -202,14 +180,27 @@ class ChildLogger extends Logger {
     this.color = color;
     this._onEnd = onEnd;
     this._requestActivate = requestActivate;
+    this.start();
   }
 
   createChild(prefix: string): ChildLogger {
     throw new Error('Cannot create sub-children');
   }
 
-  end(timestamp?: number = Date.now()) {
+  start(timestamp?: number = Date.now()): void {
+    this._requestActivate(this);
     if (this.isActive) {
+      this.writeStdout(`${this._chalk.bgCyan.bold(' START ')}`);
+      return;
+    }
+
+    this._stdoutBuffer.push({ timestamp: Date.now(), contents: startSentinel });
+  }
+
+  end(timestamp?: number = Date.now()): void {
+    this._requestActivate(this);
+    if (this.isActive) {
+      this.writeStdout(`${this._chalk.bgCyan.bold(' DONE ')}`);
       this.isActive = false;
       this._onEnd(this);
       return;
@@ -220,38 +211,40 @@ class ChildLogger extends Logger {
 
   getTimeDiff(timestamp: number): string {
     const text = super.getTimeDiff(timestamp);
-    return this._chalk.hex(this.color)(text);
+    return this._chalk.hsv(...this.color)(text);
   }
 
-  writeStdout(output: string, timestamp: number = Date.now()) {
+  writeStdout(output: string, timestamp: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      super.writeStdout(output, timestamp, this._chalk.hex(this.color).bold(` ${this.prefix} `));
-      return;
+      return super.writeStdout(output, timestamp, this._chalk.hsv(...this.color)(` ${this.prefix} `));
     }
 
     this._stdoutBuffer.push({ contents: output, timestamp });
   }
 
-  flushStdout() {
+  flushStdout(): void {
     if (!this._stdoutBuffer.length) {
       return;
     }
     while (this._stdoutBuffer.length > 0) {
       const { contents, timestamp } = this._stdoutBuffer.shift();
+      if (contents === startSentinel) {
+        this.start(timestamp);
+        continue;
+      }
       if (contents === endSentinel) {
         this.end(timestamp);
-        return;
+        continue;
       }
       this.writeStdout(stringify(contents), timestamp);
     }
   }
 
-  writeStderr(output: string, timestamp: number = Date.now()) {
+  writeStderr(output: string, timestamp: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      super.writeStderr(output, timestamp, this._chalk.hex(this.color).bold(` ${this.prefix} `));
-      return;
+      return super.writeStderr(output, timestamp, this._chalk.hsv(...this.color)(` ${this.prefix} `));
     }
 
     this._stderrBuffer.push({ contents: output, timestamp });

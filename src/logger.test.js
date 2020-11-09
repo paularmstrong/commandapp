@@ -230,7 +230,8 @@ describe('Logger', () => {
       firstChild.log('second log');
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " firstChild  LOG  first log
+        " firstChild  START 
+         firstChild  LOG  first log
          firstChild  LOG  second log
         "
       `);
@@ -240,7 +241,9 @@ describe('Logger', () => {
       `);
       firstChild.end();
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " secondChild  LOG  first log
+        " firstChild  DONE 
+         secondChild  START 
+         secondChild  LOG  first log
         "
       `);
       expect(stderr.toString()).toMatchInlineSnapshot(`
@@ -264,11 +267,15 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " firstChild  LOG  first log
+        " firstChild  START 
+         secondChild  START 
+         firstChild  LOG  first log
          secondChild  LOG  first log
          firstChild  LOG  second log
          secondChild  LOG  second log
+         secondChild  DONE 
          firstChild  LOG  third log
+         firstChild  DONE 
         "
       `);
     });
@@ -299,11 +306,15 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " firstChild  LOG  first log +15ms
-         firstChild  LOG  second log +25ms
-         firstChild  LOG  third log +45ms
-         secondChild  LOG  first log +35ms
-         secondChild  LOG  second log +30ms
+        " firstChild  START  +15ms
+         firstChild  LOG  first log +55ms
+         firstChild  LOG  second log +15ms
+         firstChild  LOG  third log +-95ms
+         firstChild  DONE  +0ms
+         secondChild  START  +-45ms
+         secondChild  LOG  first log +95ms
+         secondChild  LOG  second log +-95ms
+         secondChild  DONE  +0ms
         "
       `);
 
@@ -336,11 +347,15 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " firstChild  LOG  first log +15ms
-         secondChild  LOG  first log +35ms
-         firstChild  LOG  second log +25ms
-         secondChild  LOG  second log +30ms
-         firstChild  LOG  third log +45ms
+        " firstChild  START  +15ms
+         secondChild  START  +30ms
+         firstChild  LOG  first log +55ms
+         secondChild  LOG  first log +20ms
+         firstChild  LOG  second log +15ms
+         secondChild  LOG  second log +-95ms
+         secondChild  DONE  +0ms
+         firstChild  LOG  third log +-95ms
+         firstChild  DONE  +0ms
         "
       `);
 
@@ -362,19 +377,32 @@ describe('Logger', () => {
       });
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        "[97m[1m child0 [22m[39m[46m[1m LOG [22m[49m hello[97m +0ms[39m
-        [93m[1m child1 [22m[39m[46m[1m LOG [22m[49m hello[93m +0ms[39m
-        [34m[1m child2 [22m[39m[46m[1m LOG [22m[49m hello[34m +0ms[39m
-        [97m[1m child3 [22m[39m[46m[1m LOG [22m[49m hello[97m +0ms[39m
-        [31m[1m child4 [22m[39m[46m[1m LOG [22m[49m hello[31m +0ms[39m
-        [97m[1m child5 [22m[39m[46m[1m LOG [22m[49m hello[97m +0ms[39m
-        [97m[1m child6 [22m[39m[46m[1m LOG [22m[49m hello[97m +0ms[39m
-        [91m[1m child7 [22m[39m[46m[1m LOG [22m[49m hello[91m +0ms[39m
-        [32m[1m child8 [22m[39m[46m[1m LOG [22m[49m hello[32m +0ms[39m
-        [91m[1m child9 [22m[39m[46m[1m LOG [22m[49m hello[91m +0ms[39m
-        [34m[1m child10 [22m[39m[46m[1m LOG [22m[49m hello[34m +0ms[39m
-        [97m[1m child11 [22m[39m[46m[1m LOG [22m[49m hello[97m +0ms[39m
-        [97m[1m child12 [22m[39m[46m[1m LOG [22m[49m hello[97m +0ms[39m
+        "[38;2;237;40;165m child0 [39m[46m[1m START [22m[49m[38;2;237;40;165m +0ms[39m
+        [38;2;211;7;222m child1 [39m[46m[1m START [22m[49m[38;2;211;7;222m +0ms[39m
+        [38;2;214;155;36m child2 [39m[46m[1m START [22m[49m[38;2;214;155;36m +0ms[39m
+        [38;2;245;88;96m child3 [39m[46m[1m START [22m[49m[38;2;245;88;96m +0ms[39m
+        [38;2;74;255;140m child4 [39m[46m[1m START [22m[49m[38;2;74;255;140m +0ms[39m
+        [38;2;209;212;30m child5 [39m[46m[1m START [22m[49m[38;2;209;212;30m +0ms[39m
+        [38;2;66;245;197m child6 [39m[46m[1m START [22m[49m[38;2;66;245;197m +0ms[39m
+        [38;2;91;105;201m child7 [39m[46m[1m START [22m[49m[38;2;91;105;201m +0ms[39m
+        [38;2;28;232;215m child8 [39m[46m[1m START [22m[49m[38;2;28;232;215m +0ms[39m
+        [38;2;76;230;163m child9 [39m[46m[1m START [22m[49m[38;2;76;230;163m +0ms[39m
+        [38;2;16;158;224m child10 [39m[46m[1m START [22m[49m[38;2;16;158;224m +0ms[39m
+        [38;2;212;51;107m child11 [39m[46m[1m START [22m[49m[38;2;212;51;107m +0ms[39m
+        [38;2;209;202;59m child12 [39m[46m[1m START [22m[49m[38;2;209;202;59m +0ms[39m
+        [38;2;237;40;165m child0 [39m[46m[1m LOG [22m[49m hello[38;2;237;40;165m +0ms[39m
+        [38;2;211;7;222m child1 [39m[46m[1m LOG [22m[49m hello[38;2;211;7;222m +0ms[39m
+        [38;2;214;155;36m child2 [39m[46m[1m LOG [22m[49m hello[38;2;214;155;36m +0ms[39m
+        [38;2;245;88;96m child3 [39m[46m[1m LOG [22m[49m hello[38;2;245;88;96m +0ms[39m
+        [38;2;74;255;140m child4 [39m[46m[1m LOG [22m[49m hello[38;2;74;255;140m +0ms[39m
+        [38;2;209;212;30m child5 [39m[46m[1m LOG [22m[49m hello[38;2;209;212;30m +0ms[39m
+        [38;2;66;245;197m child6 [39m[46m[1m LOG [22m[49m hello[38;2;66;245;197m +0ms[39m
+        [38;2;91;105;201m child7 [39m[46m[1m LOG [22m[49m hello[38;2;91;105;201m +0ms[39m
+        [38;2;28;232;215m child8 [39m[46m[1m LOG [22m[49m hello[38;2;28;232;215m +0ms[39m
+        [38;2;76;230;163m child9 [39m[46m[1m LOG [22m[49m hello[38;2;76;230;163m +0ms[39m
+        [38;2;16;158;224m child10 [39m[46m[1m LOG [22m[49m hello[38;2;16;158;224m +0ms[39m
+        [38;2;212;51;107m child11 [39m[46m[1m LOG [22m[49m hello[38;2;212;51;107m +0ms[39m
+        [38;2;209;202;59m child12 [39m[46m[1m LOG [22m[49m hello[38;2;209;202;59m +0ms[39m
         "
       `);
     });
