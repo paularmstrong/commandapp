@@ -1,5 +1,6 @@
 // @flow
 import { type YargsParserOptions } from 'yargs-parser';
+import Logger from './logger';
 
 type CommandOption = {|
   alias?: Array<string> | string,
@@ -98,7 +99,7 @@ export type Command = {
   command: string,
   description: string,
   examples: Examples,
-  handler: <T>(args: T) => Promise<void>,
+  handler: <T>(args: T, logger: Logger) => Promise<void>,
   middleware?: Array<Middleware>,
   options: Options,
   positionals: Positionals,

@@ -9,4 +9,4 @@ const bootstrap = require('../src').default;
 
 const description = 'My cool example CLI';
 
-bootstrap({ name: 'example', description, rootDir: __dirname, subcommandDir: 'commands' });
+bootstrap({ name: 'example', description, rootDir: __dirname, subcommandDir: 'commands' }, {});
