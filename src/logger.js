@@ -18,7 +18,11 @@ function stringify(item: mixed): string {
     return item;
   }
 
-  if (Array.isArray(item) || (typeof item === 'object' && (item === null || item.constructor === Object))) {
+  if (
+    Array.isArray(item) ||
+    (typeof item === 'object' && item !== null && item.constructor === Object) ||
+    item === null
+  ) {
     return JSON.stringify(item, null, 2);
   }
 
