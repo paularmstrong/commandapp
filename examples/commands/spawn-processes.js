@@ -35,7 +35,24 @@ async function spawnRandomLogs(name: string, logger: Logger, random: typeof genR
         await new Promise((resolve) => {
           setTimeout(async () => {
             // console.log(name, logsWritten);
-            childLogger.log(`this is log ${logsWritten}`);
+            let method: typeof childLogger.log = childLogger.log.bind(childLogger);
+            const val = random.intBetween(0, 5);
+            switch (val) {
+              case 1:
+                method = childLogger.error.bind(childLogger);
+                break;
+              case 2:
+                method = childLogger.warn.bind(childLogger);
+                break;
+              case 3:
+                method = childLogger.info.bind(childLogger);
+                break;
+              case 4:
+                method = childLogger.debug.bind(childLogger);
+                break;
+              // no default
+            }
+            method(`this is log ${logsWritten} [rand ${val}]`);
             resolve();
           }, random.intBetween(1, 100));
         });
@@ -47,4 +64,4 @@ async function spawnRandomLogs(name: string, logger: Logger, random: typeof genR
   });
 }
 
-const names = ['tacos', 'burritos', 'churros', 'nachos'];
+const names = ['tacos', 'burritos', 'churros', 'nachos', 'chalupas', 'tortillas', 'chorta'];

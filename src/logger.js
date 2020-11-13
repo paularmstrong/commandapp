@@ -108,32 +108,32 @@ export default class Logger {
   };
 
   log(output: mixed): void {
-    return this.writeStdout(`${this._chalk.bgCyan.bold(' LOG ')} ${stringify(output)}`);
+    return this.writeStdout(stringify(output), [this._chalk.bgCyan.bold(' LOG ')]);
   }
 
   // -v 0
   error(output: mixed): void {
-    return this.writeStderr(`${this._chalk.bgRed.bold(' ERROR ')} ${stringify(output)}`);
+    return this.writeStderr(stringify(output), [this._chalk.bgRed.bold(' ERROR ')]);
   }
 
   // -v 1
   warn(output: mixed): void {
     if (this._verbosity >= 1) {
-      return this.writeStderr(`${this._chalk.bgYellow.bold(' WARN ')} ${stringify(output)}`);
+      return this.writeStderr(stringify(output), [this._chalk.bgYellow.bold(' WARN ')]);
     }
   }
 
   // -v 2
   info(output: mixed): void {
     if (this._verbosity >= 2) {
-      return this.writeStderr(`${this._chalk.bgBlue.bold(' INFO ')} ${stringify(output)}`);
+      return this.writeStderr(stringify(output), [this._chalk.bgBlue.bold(' INFO ')]);
     }
   }
 
   // -v 3
   debug(output: mixed): void {
     if (this._verbosity >= 3) {
-      return this.writeStderr(`${this._chalk.bgMagenta.bold(' DEBUG ')} ${stringify(output)}`);
+      return this.writeStderr(stringify(output), [this._chalk.bgMagenta.bold(' DEBUG ')]);
     }
   }
 
@@ -144,13 +144,19 @@ export default class Logger {
     return '';
   }
 
-  writeStdout(output: string, timestamp: number = Date.now(), prefix?: string): void {
-    this._stdout.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''), 'utf8');
+  writeStdout(output: string, prefix: Array<string> = [], timestamp: number = Date.now()): void {
+    this._stdout.write(
+      `${prefix.length ? `${prefix.join(' ')} ` : ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''),
+      'utf8'
+    );
     this._lastTimestamp = timestamp;
   }
 
-  writeStderr(output: string, timestamp: number = Date.now(), prefix?: string): void {
-    this._stderr.write(`${prefix || ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''), 'utf8');
+  writeStderr(output: string, prefix: Array<string>, timestamp: number = Date.now()): void {
+    this._stderr.write(
+      `${prefix.length ? `${prefix.join(' ')} ` : ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''),
+      'utf8'
+    );
     this._lastTimestamp = timestamp;
   }
 }
@@ -167,8 +173,8 @@ const startSentinel = Symbol.for('logger start');
 const endSentinel = Symbol.for('logger end');
 
 class ChildLogger extends Logger {
-  +_stdoutBuffer: Array<{ timestamp: number, contents: mixed }> = [];
-  +_stderrBuffer: Array<{ timestamp: number, contents: mixed }> = [];
+  +_stdoutBuffer: Array<{ timestamp: number, prefix: Array<string>, contents: mixed }> = [];
+  +_stderrBuffer: Array<{ timestamp: number, prefix: Array<string>, contents: mixed }> = [];
   +_onEnd: (logger: ChildLogger) => void;
   +_requestActivate: (logger: ChildLogger) => void;
 
@@ -194,23 +200,23 @@ class ChildLogger extends Logger {
   start(timestamp?: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      this.writeStdout(`${this._chalk.bgCyan.bold(' START ')}`, timestamp);
+      this.writeStdout('', [this._chalk.bgCyan.bold(' START ')], timestamp);
       return;
     }
 
-    this._stdoutBuffer.push({ timestamp, contents: startSentinel });
+    this._stdoutBuffer.push({ timestamp, prefix: [], contents: startSentinel });
   }
 
   end(timestamp?: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      this.writeStdout(`${this._chalk.bgCyan.bold(' DONE ')}`, timestamp);
+      this.writeStdout('', [this._chalk.bgCyan.bold(' DONE ')], timestamp);
       this.isActive = false;
       this._onEnd(this);
       return;
     }
 
-    this._stdoutBuffer.push({ timestamp, contents: endSentinel });
+    this._stdoutBuffer.push({ timestamp, prefix: [], contents: endSentinel });
   }
 
   getTimeDiff(timestamp: number): string {
@@ -218,13 +224,13 @@ class ChildLogger extends Logger {
     return this._chalk.hsv(...this.color)(text);
   }
 
-  writeStdout(output: string, timestamp: number = Date.now()): void {
+  writeStdout(output: string, prefix: Array<string> = [], timestamp: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      return super.writeStdout(output, timestamp, this._chalk.hsv(...this.color)(` ${this.prefix} `));
+      return super.writeStdout(output, [...prefix, this._chalk.hsv(...this.color)(this.prefix)], timestamp);
     }
 
-    this._stdoutBuffer.push({ contents: output, timestamp });
+    this._stdoutBuffer.push({ contents: output, timestamp, prefix });
   }
 
   flushStdout(): void {
@@ -232,7 +238,7 @@ class ChildLogger extends Logger {
       return;
     }
     while (this._stdoutBuffer.length > 0) {
-      const { contents, timestamp } = this._stdoutBuffer.shift();
+      const { contents, prefix, timestamp } = this._stdoutBuffer.shift();
       if (contents === startSentinel) {
         this.start(timestamp);
         continue;
@@ -241,17 +247,17 @@ class ChildLogger extends Logger {
         this.end(timestamp);
         continue;
       }
-      this.writeStdout(stringify(contents), timestamp);
+      this.writeStdout(stringify(contents), prefix, timestamp);
     }
   }
 
-  writeStderr(output: string, timestamp: number = Date.now()): void {
+  writeStderr(output: string, prefix: Array<string> = [], timestamp: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      return super.writeStderr(output, timestamp, this._chalk.hsv(...this.color)(` ${this.prefix} `));
+      return super.writeStderr(output, [...prefix, this._chalk.hsv(...this.color)(this.prefix)], timestamp);
     }
 
-    this._stderrBuffer.push({ contents: output, timestamp });
+    this._stderrBuffer.push({ contents: output, timestamp, prefix });
   }
 
   flushStderr() {
@@ -259,8 +265,8 @@ class ChildLogger extends Logger {
       return;
     }
     while (this._stderrBuffer.length > 0) {
-      const { contents, timestamp } = this._stderrBuffer.shift();
-      this.writeStderr(stringify(contents), timestamp);
+      const { contents, prefix, timestamp } = this._stderrBuffer.shift();
+      this.writeStderr(stringify(contents), prefix, timestamp);
     }
   }
 }
