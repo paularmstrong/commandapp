@@ -1,5 +1,5 @@
 // @flow
-import type { Argv } from '../../src';
+import type { Argv } from '@commandapp/commandapp';
 
 export const description = 'This is the description for the command "foo"';
 

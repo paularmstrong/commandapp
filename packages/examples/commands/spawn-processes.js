@@ -1,6 +1,6 @@
 // @flow
 import genRandom from 'random-seed';
-import { type Argv, Logger } from '../../src';
+import { type Argv, Logger } from '@commandapp/commandapp';
 
 export const description = 'Spawn a bunch of processes in parallel to test the logger';
 
