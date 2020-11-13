@@ -1,11 +1,14 @@
+#!/usr/bin/env node
 // @flow
 const path = require('path');
 
 require('@babel/register')({
-  cwd: path.join(__dirname, '..'),
+  cwd: __dirname,
+  rootMode: 'upward',
+  ignore: ['node_modules'],
 });
 
-const bootstrap = require('../src').default;
+const bootstrap = require('@commandapp/commandapp').default;
 
 const description = 'My cool example CLI';
 

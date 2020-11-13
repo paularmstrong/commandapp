@@ -33,6 +33,7 @@ declare module '@babel/register' {
     presets?: Array<string>,
     retainLines?: boolean,
     resolveModuleSource?: null | ((source: string, filename: string) => boolean),
+    rootMode?: 'root' | 'upward' | 'upward-optional',
     shouldPrintComment?: null | ((commentContents: string) => string),
     sourceFileName?: string,
     sourceMaps?: boolean | 'inline' | 'both',

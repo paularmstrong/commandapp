@@ -1,0 +1,13 @@
+{
+  "name": "@commandapp/examples",
+  "version": "0.0.0",
+  "bin": {
+    "examples": "./run.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@babel/register": "^7.10.3",
+    "@commandapp/commandapp": "0.0.0",
+    "random-seed": "^0.3.0"
+  }
+}
