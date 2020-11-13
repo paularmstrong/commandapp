@@ -194,23 +194,23 @@ class ChildLogger extends Logger {
   start(timestamp?: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      this.writeStdout(`${this._chalk.bgCyan.bold(' START ')}`);
+      this.writeStdout(`${this._chalk.bgCyan.bold(' START ')}`, timestamp);
       return;
     }
 
-    this._stdoutBuffer.push({ timestamp: Date.now(), contents: startSentinel });
+    this._stdoutBuffer.push({ timestamp, contents: startSentinel });
   }
 
   end(timestamp?: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
-      this.writeStdout(`${this._chalk.bgCyan.bold(' DONE ')}`);
+      this.writeStdout(`${this._chalk.bgCyan.bold(' DONE ')}`, timestamp);
       this.isActive = false;
       this._onEnd(this);
       return;
     }
 
-    this._stdoutBuffer.push({ timestamp: Date.now(), contents: endSentinel });
+    this._stdoutBuffer.push({ timestamp, contents: endSentinel });
   }
 
   getTimeDiff(timestamp: number): string {

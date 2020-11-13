@@ -292,7 +292,7 @@ describe('Logger', () => {
         .mockReturnValueOnce(75) // 2, 2
         .mockReturnValueOnce(80) // 2, end
         .mockReturnValueOnce(95) // 1, 3
-        .mockReturnValueOnce(95); // 1, end
+        .mockReturnValue(95); // 1, end
       const logger = new Logger({ useColor: false, interleave: false, verbosity: 3, stdout, stderr });
       const firstChild = logger.createChild('firstChild');
       const secondChild = logger.createChild('secondChild');
@@ -306,14 +306,14 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " firstChild  START  +15ms
-         firstChild  LOG  first log +55ms
-         firstChild  LOG  second log +15ms
-         firstChild  LOG  third log +-95ms
+        " firstChild  START  +0ms
+         firstChild  LOG  first log +40ms
+         firstChild  LOG  second log +30ms
+         firstChild  LOG  third log +15ms
          firstChild  DONE  +0ms
-         secondChild  START  +-45ms
-         secondChild  LOG  first log +95ms
-         secondChild  LOG  second log +-95ms
+         secondChild  START  +20ms
+         secondChild  LOG  first log +30ms
+         secondChild  LOG  second log +20ms
          secondChild  DONE  +0ms
         "
       `);
@@ -333,7 +333,7 @@ describe('Logger', () => {
         .mockReturnValueOnce(75) // 2, 2
         .mockReturnValueOnce(80) // 2, end
         .mockReturnValueOnce(95) // 1, 3
-        .mockReturnValueOnce(95); // 1, end
+        .mockReturnValue(95); // 1, end
       const logger = new Logger({ useColor: false, interleave: true, verbosity: 3, stdout, stderr });
       const firstChild = logger.createChild('firstChild');
       const secondChild = logger.createChild('secondChild');
@@ -347,14 +347,14 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " firstChild  START  +15ms
-         secondChild  START  +30ms
-         firstChild  LOG  first log +55ms
-         secondChild  LOG  first log +20ms
-         firstChild  LOG  second log +15ms
-         secondChild  LOG  second log +-95ms
+        " firstChild  START  +0ms
+         secondChild  START  +20ms
+         firstChild  LOG  first log +40ms
+         secondChild  LOG  first log +30ms
+         firstChild  LOG  second log +30ms
+         secondChild  LOG  second log +20ms
          secondChild  DONE  +0ms
-         firstChild  LOG  third log +-95ms
+         firstChild  LOG  third log +15ms
          firstChild  DONE  +0ms
         "
       `);
