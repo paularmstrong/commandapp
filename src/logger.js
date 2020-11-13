@@ -108,32 +108,32 @@ export default class Logger {
   };
 
   log(output: mixed): void {
-    return this.writeStdout(stringify(output), [this._chalk.bgCyan.bold(' LOG ')]);
+    return this.writeStdout(stringify(output), [this._chalk.hex('#000').bgCyanBright.bold(' LOG ')]);
   }
 
   // -v 0
   error(output: mixed): void {
-    return this.writeStderr(stringify(output), [this._chalk.bgRed.bold(' ERROR ')]);
+    return this.writeStderr(stringify(output), [this._chalk.hex('#FFF').bgRed.bold(' ERROR ')]);
   }
 
   // -v 1
   warn(output: mixed): void {
     if (this._verbosity >= 1) {
-      return this.writeStderr(stringify(output), [this._chalk.bgYellow.bold(' WARN ')]);
+      return this.writeStderr(stringify(output), [this._chalk.hex('#000').bgYellow.bold(' WARN ')]);
     }
   }
 
   // -v 2
   info(output: mixed): void {
     if (this._verbosity >= 2) {
-      return this.writeStderr(stringify(output), [this._chalk.bgBlue.bold(' INFO ')]);
+      return this.writeStderr(stringify(output), [this._chalk.hex('#FFF').bgBlue.bold(' INFO ')]);
     }
   }
 
   // -v 3
   debug(output: mixed): void {
     if (this._verbosity >= 3) {
-      return this.writeStderr(stringify(output), [this._chalk.bgMagenta.bold(' DEBUG ')]);
+      return this.writeStderr(stringify(output), [this._chalk.hex('#FFF').bgMagenta.bold(' DEBUG ')]);
     }
   }
 
