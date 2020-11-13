@@ -71,50 +71,61 @@ export default async function bootstrap(
   const resolvedSubcommandDir =
     typeof subcommandDir === 'string' && subcommandDir.length ? path.join(rootDir, subcommandDir) : rootDir;
 
-  const commands: Array<Command> = glob
+  const requireCommand = (commandPath) => {
+    const source = commandRequire(commandPath);
+    const command = _mapPathToCommandString(commandPath, resolvedSubcommandDir);
+    return {
+      alias: [],
+      examples: [],
+      options: {},
+      positionals: {},
+      ...source,
+      command,
+      path: path.relative(rootDir, commandPath),
+    };
+  };
+
+  const commandPaths: Array<string> = glob
     .sync(`${resolvedSubcommandDir}/**/*`, {
       nodir: true,
     })
-    .filter((commandPath) => !ignoreCommands.test(commandPath))
-    .map((commandPath) => {
-      const source = commandRequire(commandPath);
-      const command = path
-        .relative(resolvedSubcommandDir, commandPath)
-        .replace('.js', '')
-        .split('/')
-        .join(' ')
-        .replace(' index', '');
+    .filter((commandPath) => !ignoreCommands.test(commandPath));
 
-      if (!source.description) {
-        throw new Error(`Missing description for "${command}"`);
-      }
+  const resolvedCommandPath = resolveCommandPath(commandPaths, inputCommand, resolvedSubcommandDir);
 
-      if (!source.handler) {
-        throw new Error(`Missing handler for "${command}"`);
-      }
-
-      return {
-        examples: [],
-        positionals: {},
-        options: {},
-        middleware: [],
-        ...source,
-        alias: source.alias ? command.replace(/[\w-]+$/, source.alias) : undefined,
-        command,
-        path: path.relative(rootDir, commandPath),
-      };
-    });
-
-  const resolvedCommand = resolveCommand(commands, inputCommand);
-
-  if (!resolvedCommand) {
+  if (typeof resolvedCommandPath !== 'string') {
     if (Boolean(help)) {
+      const aliasMap: { [key: string]: Array<string> } = {};
+      const commands = commandPaths
+        .reduce((memo, commandPath) => {
+          const source = requireCommand(commandPath);
+
+          if (source.aliasof) {
+            const { alias, command } = _resolveAlias(source.aliasof, commandPath, resolvedSubcommandDir);
+            if (!Array.isArray(aliasMap[command])) {
+              aliasMap[command] = [];
+            }
+            aliasMap[command].push(alias);
+            return memo;
+          }
+
+          memo.push(source);
+          return memo;
+        }, [])
+        .map((command) => {
+          if (command.command in aliasMap) {
+            command.alias.push(...aliasMap[command.command]);
+          }
+          return command;
+        });
+
       const { name = process.argv[1], description = '', options = {} } = config || {};
-      logger.log(
+      logger.plain(
         await formatHelp(
           [
             {
               command: name,
+              alias: [],
               description,
               handler: async () => {},
               options: {
@@ -122,7 +133,6 @@ export default async function bootstrap(
                 ...globalCommandOptions,
               },
               positionals: {},
-              middleware: [],
               examples: [],
             },
             ...commands,
@@ -132,24 +142,29 @@ export default async function bootstrap(
       );
       return;
     }
-    logger.error(commands);
     return;
   }
 
-  const {
-    alias,
-    command,
-    description,
-    handler,
-    options = {},
-    positionals = {},
-    matchedAlias = false,
-    middleware = [],
-  } = resolvedCommand;
+  let { aliasof, ...resolvedCommand } = requireCommand(resolvedCommandPath);
+  let alias: string | void;
+
+  if (aliasof) {
+    const resolved = _resolveAlias(aliasof, resolvedCommandPath, resolvedSubcommandDir);
+    alias = resolved.alias;
+    resolvedCommand = requireCommand(resolved.commandPath);
+  }
+  const { command, description, handler, options = {}, positionals = {}, middleware = [] } = resolvedCommand;
+
+  if (!description) {
+    throw new Error(`Missing description for "${command}"`);
+  }
+
+  if (!handler) {
+    throw new Error(`Missing handler for "${command}"`);
+  }
 
   if (Boolean(help)) {
-    const { matchedAlias, ...command } = resolvedCommand;
-    logger.log(await formatHelp(command, helpFormat));
+    logger.plain(await formatHelp(resolvedCommand, helpFormat));
     return;
   }
 
@@ -157,9 +172,7 @@ export default async function bootstrap(
     ...optionsToParserOptions({ ...options, ...globalCommandOptions }),
     configuration: yargsConfiguration,
   });
-  const inputPositionals = parsedPositionals.slice(
-    (typeof alias === 'string' && matchedAlias ? alias : command).split(' ').length
-  );
+  const inputPositionals = parsedPositionals.slice((typeof alias === 'string' ? alias : command).split(' ').length);
   const positionalKeys = Reflect.ownKeys(positionals);
   const finalArgs: Argv<Positionals, Options> = {
     ...parsedArgs,
@@ -192,20 +205,38 @@ export default async function bootstrap(
   await handler(finalArgs, logger);
 }
 
-export function resolveCommand(
-  commands: Array<Command>,
-  positionalInput: Array<string>
-): { ...Command, matchedAlias: boolean } | void {
+function _resolveAlias(
+  aliasof: string,
+  filepath: string,
+  resolvedSubcommandDir: string
+): {| alias: string, command: string, commandPath: string |} {
+  const commandPath = path.resolve(path.dirname(filepath), aliasof);
+  const alias = _mapPathToCommandString(filepath, resolvedSubcommandDir);
+  const command = _mapPathToCommandString(commandPath, resolvedSubcommandDir);
+  return { alias, command, commandPath };
+}
+
+function _mapPathToCommandString(commandPath: string, resolvedSubcommandDir: string): string {
+  return path
+    .relative(resolvedSubcommandDir, commandPath)
+    .replace('.js', '')
+    .split('/')
+    .join(' ')
+    .replace(' index', '');
+}
+
+export function resolveCommandPath(
+  commandPaths: Array<string>,
+  positionalInput: Array<string>,
+  resolvedSubcommandDir: string
+): string | void {
   for (let i = positionalInput.length; i > 0; i--) {
     const subcommand = positionalInput.slice(0, i).join(' ');
-    const commandMatch = commands.find(({ command }) => subcommand === command);
-    if (commandMatch) {
-      return { ...commandMatch, matchedAlias: false };
-    }
-
-    const aliasMatch = commands.find(({ alias }) => subcommand === alias);
-    if (aliasMatch) {
-      return { ...aliasMatch, matchedAlias: true };
+    const commandMatch = commandPaths.find(
+      (command) => subcommand === _mapPathToCommandString(command, resolvedSubcommandDir)
+    );
+    if (typeof commandMatch === 'string' && commandMatch.length > 0) {
+      return commandMatch;
     }
   }
 }

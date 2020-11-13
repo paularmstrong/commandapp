@@ -1,4 +1,5 @@
 // @flow
+import * as docs from './docs';
 import bootstrap from '.';
 import glob from 'glob';
 import Logger from './logger';
@@ -40,7 +41,7 @@ describe('bootstrap', () => {
         bootstrap(
           undefined,
           undefined,
-          'foo',
+          'foo bar',
           // $FlowFixMe passing mock as typeof require
           requireMock
         )
@@ -54,7 +55,7 @@ describe('bootstrap', () => {
         bootstrap(
           undefined,
           undefined,
-          'foo',
+          'foo bar',
           // $FlowFixMe passing mock as typeof require
           requireMock
         )
@@ -64,23 +65,23 @@ describe('bootstrap', () => {
 
   describe('aliases', () => {
     test('replaced over the command, calls the correct handler', async () => {
-      globMock.mockReturnValueOnce(['/rootDir/food/burritos.js', '/rootDir/food/test-command.js']);
+      globMock.mockReturnValueOnce(['/rootDir/food/burritos.js', '/rootDir/food/good-stuff.js']);
       const handlerSpy = jest.fn();
       requireMock
-        .mockReturnValueOnce({ description: 'burritos description', handler: handlerSpy })
-        .mockReturnValueOnce({ description: 'tacos description', handler: handlerSpy, alias: 'tacos' });
+        .mockReturnValueOnce({ aliasof: './burritos.js' })
+        .mockReturnValueOnce({ description: 'burritos description', handler: handlerSpy });
 
       await expect(
         bootstrap(
           { rootDir: '/rootDir' },
           undefined,
-          'food tacos',
+          'food good-stuff',
           // $FlowFixMe passing mock as typeof require
           requireMock
         )
       ).resolves.toBeUndefined();
       expect(globMock).toHaveBeenCalledWith('/rootDir/**/*', { nodir: true });
-      expect(requireMock).toHaveBeenCalledWith('/rootDir/food/test-command.js');
+      expect(requireMock).toHaveBeenCalledWith('/rootDir/food/good-stuff.js');
       expect(handlerSpy).toHaveBeenCalledWith({ _: {}, verbosity: 0, 'logger-async': false }, expect.any(Logger));
     });
   });
@@ -171,6 +172,169 @@ describe('bootstrap', () => {
         new Error(
           'Positional "toppings" defined as "greedy", but cannot be because it is not the last positional option'
         )
+      );
+    });
+  });
+
+  describe('help', () => {
+    beforeEach(() => {
+      jest.spyOn(Logger.prototype, 'plain').mockImplementation(() => {});
+    });
+
+    test('with no resolved command and --help, prints help', async () => {
+      const handlerSpy = jest.fn();
+      const helpSpy = jest.spyOn(docs, 'default').mockImplementation(() => '');
+      globMock.mockReturnValue(['/tacos.js', '/burritos.js']);
+      requireMock
+        .mockReturnValueOnce({
+          description: 'tacos description',
+          handler: handlerSpy,
+        })
+        .mockReturnValueOnce({ description: 'burritos description', handler: handlerSpy });
+
+      await expect(
+        bootstrap(
+          { rootDir: '/' },
+          undefined,
+          '--help',
+          // $FlowFixMe passing mock as typeof require
+          requireMock
+        )
+      ).resolves.toBeUndefined();
+      expect(helpSpy).toHaveBeenCalledWith(
+        [
+          {
+            alias: [],
+            command: expect.any(String),
+            description: '',
+            handler: expect.any(Function),
+            options: {
+              help: { alias: 'h', description: 'Get help documentation', type: 'boolean' },
+              'help-format': {
+                'choices': ['json', 'markdown', 'stdout'],
+                'description': 'Get help documentation in the given format',
+                'type': 'string',
+              },
+              'logger-async': {
+                'default': false,
+                'description': 'Allow logger to interleave output of parallel asynchronous child loggers',
+                'type': 'boolean',
+              },
+              'verbosity': {
+                'alias': 'v',
+                'default': 0,
+                'description': "Increase the logger's verbosity",
+                'type': 'count',
+              },
+            },
+            positionals: {},
+            examples: [],
+          },
+          {
+            alias: [],
+            command: 'tacos',
+            description: 'tacos description',
+            handler: handlerSpy,
+            options: {},
+            positionals: {},
+            examples: [],
+            path: 'tacos.js',
+          },
+          {
+            alias: [],
+            command: 'burritos',
+            description: 'burritos description',
+            handler: handlerSpy,
+            options: {},
+            positionals: {},
+            examples: [],
+            path: 'burritos.js',
+          },
+        ],
+        undefined
+      );
+    });
+
+    test('passes help format', async () => {
+      const helpSpy = jest.spyOn(docs, 'default').mockImplementation(() => '');
+
+      await expect(
+        bootstrap(
+          { rootDir: '/' },
+          undefined,
+          '--help --help-format=stdout',
+          // $FlowFixMe passing mock as typeof require
+          requireMock
+        )
+      ).resolves.toBeUndefined();
+      expect(helpSpy).toHaveBeenCalledWith(expect.arrayContaining([]), 'stdout');
+    });
+
+    test('resolves aliases for commands', async () => {
+      const handlerSpy = jest.fn();
+      const helpSpy = jest.spyOn(docs, 'default').mockImplementation(() => '');
+      globMock.mockReturnValue(['/food/tacos.js', '/food/index.js']);
+      requireMock
+        .mockReturnValueOnce({
+          description: 'tacos description',
+          handler: handlerSpy,
+        })
+        .mockReturnValueOnce({ aliasof: './tacos.js' });
+      await expect(
+        bootstrap(
+          { rootDir: '/' },
+          undefined,
+          '--help',
+          // $FlowFixMe passing mock as typeof require
+          requireMock
+        )
+      ).resolves.toBeUndefined();
+      expect(helpSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          {
+            alias: ['food'],
+            command: 'food tacos',
+            description: 'tacos description',
+            handler: handlerSpy,
+            options: {},
+            positionals: {},
+            examples: [],
+            path: 'food/tacos.js',
+          },
+        ]),
+        undefined
+      );
+    });
+
+    test('prints for individual commands', async () => {
+      const handlerSpy = jest.fn();
+      const helpSpy = jest.spyOn(docs, 'default').mockImplementation(() => '');
+      globMock.mockReturnValue(['/food/tacos.js', '/food/index.js']);
+      requireMock.mockReturnValueOnce({
+        description: 'tacos description',
+        handler: handlerSpy,
+      });
+      await expect(
+        bootstrap(
+          { rootDir: '/' },
+          undefined,
+          'food tacos --help',
+          // $FlowFixMe passing mock as typeof require
+          requireMock
+        )
+      ).resolves.toBeUndefined();
+      expect(helpSpy).toHaveBeenCalledWith(
+        {
+          alias: [],
+          command: 'food tacos',
+          description: 'tacos description',
+          handler: handlerSpy,
+          options: {},
+          positionals: {},
+          examples: [],
+          path: 'food/tacos.js',
+        },
+        undefined
       );
     });
   });

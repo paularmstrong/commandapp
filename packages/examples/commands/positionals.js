@@ -3,8 +3,6 @@ import type { Argv } from '@commandapp/commandapp';
 
 export const description = 'This is the description for the command "foo"';
 
-export const alias = 'pos itional';
-
 export const positionals = {
   'first-positional': {
     description: 'This is a required first positional',

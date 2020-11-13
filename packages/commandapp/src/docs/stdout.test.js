@@ -2,6 +2,7 @@
 import formatter from './stdout';
 
 const mockCommand = {
+  alias: [],
   description: 'mock command description',
   examples: [{ code: 'this is my example code', description: "this is my example code's description" }],
   command: 'mock-command',

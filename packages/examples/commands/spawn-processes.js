@@ -34,7 +34,6 @@ async function spawnRandomLogs(name: string, logger: Logger, random: typeof genR
       while (logsWritten <= numLogs) {
         await new Promise((resolve) => {
           setTimeout(async () => {
-            // console.log(name, logsWritten);
             let method: typeof childLogger.log = childLogger.log.bind(childLogger);
             const val = random.intBetween(0, 5);
             switch (val) {

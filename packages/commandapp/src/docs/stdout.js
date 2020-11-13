@@ -45,7 +45,6 @@ function positionalsTable(positionals: $PropertyType<Command, 'positionals'>): s
 }
 
 export default async function stdoutFormatter(tree: Array<Command> | Command): Promise<string> {
-  const data = { commands: Array.isArray(tree) ? tree : [tree] };
   // $FlowFixMe columns exists on process.stdout
   const { columns = 80 } = process.stdout;
   const columnWidth = Math.floor(columns / 4);
@@ -62,7 +61,10 @@ export default async function stdoutFormatter(tree: Array<Command> | Command): P
     ui.div(
       tree
         .slice(1)
-        .map((command) => `  ${command.command}\t    ${command.description}\n`)
+        .map(
+          (command) =>
+            `  ${command.command}${command.alias.map((a) => `, ${a}`).join('')}\t    ${command.description}\n`
+        )
         .join('')
     );
   }
