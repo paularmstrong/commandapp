@@ -95,7 +95,7 @@ export type Argv<pos: Positionals, opts: Options> = {|
 export type Examples = Array<{ code: string, description: string }>;
 export type Middleware = (args: {}) => Promise<{}>;
 export type Command = {
-  alias?: string,
+  alias: Array<string>,
   command: string,
   description: string,
   examples: Examples,

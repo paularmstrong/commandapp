@@ -107,6 +107,10 @@ export default class Logger {
     }
   };
 
+  plain(output: mixed): void {
+    return this.writeStdout(stringify(output));
+  }
+
   log(output: mixed): void {
     return this.writeStdout(stringify(output), [this._chalk.hex('#000').bgCyanBright.bold(' LOG ')]);
   }

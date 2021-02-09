@@ -1,5 +1,5 @@
 <% commands.forEach((command) => { %>
-## `<%= command.command %>`
+## `<%= command.command %>`<%= command.alias.map(a => `, \`${a}\``).join('') %>
 
 <%- command.description %>
 
