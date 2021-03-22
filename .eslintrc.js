@@ -10,8 +10,8 @@ module.exports = {
     },
     sourceType: 'module',
   },
-  extends: ['plugin:flowtype/recommended', 'plugin:jest/recommended', 'prettier'],
-  plugins: ['flowtype', 'prettier'],
+  extends: ['plugin:jest/recommended', 'prettier'],
+  plugins: ['prettier'],
   env: {
     es6: true,
     node: true,
@@ -29,17 +29,5 @@ module.exports = {
     'jest/valid-describe': 'error',
     'jest/valid-expect': 'error',
     'jest/valid-expect-in-promise': 'error',
-
-    'flowtype/generic-spacing': 'off',
-    'flowtype/boolean-style': ['error', 'boolean'],
-    'flowtype/define-flow-type': 'warn',
-    'flowtype/no-primitive-constructor-types': 'error',
-    'flowtype/no-weak-types': 'off',
-    'flowtype/require-parameter-type': 'off',
-    'flowtype/require-return-type': 'off',
-    'flowtype/require-valid-file-annotation': 'off',
-    'flowtype/space-after-type-colon': ['error', 'always', { allowLineBreak: true }],
-    'flowtype/use-flow-type': 'off',
-    'flowtype/valid-syntax': 'error',
   },
 };

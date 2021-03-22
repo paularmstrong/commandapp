@@ -1,7 +1,18 @@
 'use strict';
 
-module.exports = {
-  presets: [['@babel/preset-env', { targets: { node: 10 } }], '@babel/preset-flow'],
-  plugins: ['@babel/plugin-proposal-class-properties'],
-  babelrcRoots: ['./packages/*'],
+function isBabelRegister(caller) {
+  return !!(caller && caller.name === '@babel/register');
+}
+
+module.exports = (api) => {
+  // api.cache(false);
+
+  const modules = api.caller(isBabelRegister) ? 'commonjs' : false;
+
+  return {
+    presets: [['@babel/preset-env', { modules, targets: { node: 'current' } }], '@babel/preset-typescript'],
+    plugins: ['@babel/plugin-proposal-class-properties'],
+    babelrcRoots: ['./packages/*'],
+    sourceType: 'unambiguous',
+  };
 };

@@ -1,4 +1,3 @@
-// @flow
 import markdownFormatter from './markdown';
 
 const mockCommand = {
@@ -24,7 +23,7 @@ const mockCommand = {
       default: false,
       description: 'do you like burritos?',
     },
-  },
+  } as const,
 };
 
 describe('markdown formatter', () => {

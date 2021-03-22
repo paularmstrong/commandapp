@@ -22,8 +22,8 @@ jobs:
           node-version: ${{matrix.node-version}}
       - run: npm install -g yarn
       - run: yarn install
-      - name: Flow
-        run: yarn flow check
+      - name: Typecheck
+        run: yarn tsc
       - name: Tests
         run: yarn test --ci --coverage
       - name: Lint

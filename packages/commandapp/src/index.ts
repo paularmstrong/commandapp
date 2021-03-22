@@ -1,29 +1,28 @@
-// @flow
 import chalk from 'chalk';
 import glob from 'glob';
 import formatHelp, { formatTypes } from './docs';
 import Logger from './logger';
+import parser from 'yargs-parser';
 import path from 'path';
 import optionsToParserOptions, { validate } from './options';
-import parser, { type YargsParserOptions } from 'yargs-parser';
-import type { Argv, Command, Options, Positionals } from './options';
+import { Argv, Command, OptionRecord, Options, PositionalRecord, Positionals } from './options';
 
-export type { Argv, Command } from './options';
+export { Argv, Command } from './options';
 export { default as Logger } from './logger';
-export type Config = {|
-  ignoreCommands?: RegExp,
-  description?: string,
-  name?: string,
-  options?: Options,
-  rootDir?: string,
-  subcommandDir?: string,
-|};
+export type Config = {
+  ignoreCommands?: RegExp;
+  description?: string;
+  name?: string;
+  options?: Options;
+  rootDir?: string;
+  subcommandDir?: string;
+};
 
-export type GlobalOptions = {|
-  verbose?: number,
-  'logger-async'?: boolean,
-  useColor?: boolean,
-|};
+export type GlobalOptions = {
+  verbose?: number;
+  'logger-async'?: boolean;
+  useColor?: boolean;
+};
 
 const ignoreCommandRegex = /(\/__\w+__\/|\.test\.|\.spec\.)/;
 
@@ -33,14 +32,14 @@ export default async function bootstrap(
   config?: Config,
   globalOptions?: GlobalOptions,
   inputArgs: string = process.argv.slice(2).join(' '),
-  commandRequire: typeof require = require
+  commandRequire: (input: string) => Partial<Command> = (input) => require(input)
 ) {
   const { ignoreCommands = ignoreCommandRegex, rootDir = process.cwd(), subcommandDir } = config || {};
   const { verbose = 0, 'logger-async': defaultInterleave = false, useColor = chalk.supportsColor } =
     globalOptions || {};
 
-  const globalCommandOptions = Object.freeze({
-    help: { alias: 'h', description: 'Get help documentation', type: 'boolean' },
+  const globalCommandOptions: OptionRecord = Object.freeze({
+    help: { alias: 'h', description: 'Get help documentation', type: 'boolean' as 'boolean' },
     'help-format': {
       description: 'Get help documentation in the given format',
       type: 'string',
@@ -59,10 +58,16 @@ export default async function bootstrap(
     },
   });
 
-  const { _: inputCommand, help, 'help-format': helpFormatInput, 'logger-async': loggerAsync, verbosity } = parser(
-    inputArgs,
-    optionsToParserOptions(globalCommandOptions)
-  );
+  const {
+    _: inputCommand,
+    help,
+    'help-format': helpFormatInput,
+    'logger-async': loggerAsync,
+    verbosity,
+    ...rest
+  } = parser(inputArgs, optionsToParserOptions(globalCommandOptions));
+
+  const foo = rest.foo;
 
   const helpFormat = typeof helpFormatInput === 'string' ? helpFormatInput : undefined;
 
@@ -80,7 +85,7 @@ export default async function bootstrap(
       const source = commandRequire(commandPath);
       const command = path
         .relative(resolvedSubcommandDir, commandPath)
-        .replace('.js', '')
+        .replace(/\.(mj|j|t)s/, '')
         .split('/')
         .join(' ')
         .replace(' index', '');
@@ -102,37 +107,36 @@ export default async function bootstrap(
         alias: source.alias ? command.replace(/[\w-]+$/, source.alias) : undefined,
         command,
         path: path.relative(rootDir, commandPath),
-      };
+      } as Command;
     });
 
   const resolvedCommand = resolveCommand(commands, inputCommand);
 
   if (!resolvedCommand) {
-    if (Boolean(help)) {
-      const { name = process.argv[1], description = '', options = {} } = config || {};
-      logger.log(
-        await formatHelp(
-          [
-            {
-              command: name,
-              description,
-              handler: async () => {},
-              options: {
-                ...options,
-                ...globalCommandOptions,
-              },
-              positionals: {},
-              middleware: [],
-              examples: [],
-            },
-            ...commands,
-          ],
-          helpFormat
-        )
-      );
-      return;
+    if (!Boolean(help)) {
+      logger.error('No command received. Please review the available options');
     }
-    logger.error(commands);
+    const { name = process.argv[1], description = '', options = {} } = config || {};
+    logger.log(
+      await formatHelp(
+        [
+          {
+            command: name,
+            description,
+            handler: async () => {},
+            options: {
+              ...options,
+              ...globalCommandOptions,
+            } as OptionRecord,
+            positionals: {} as PositionalRecord,
+            middleware: [],
+            examples: [],
+          },
+          ...commands,
+        ],
+        helpFormat
+      )
+    );
     return;
   }
 
@@ -160,12 +164,13 @@ export default async function bootstrap(
   const inputPositionals = parsedPositionals.slice(
     (typeof alias === 'string' && matchedAlias ? alias : command).split(' ').length
   );
-  const positionalKeys = Reflect.ownKeys(positionals);
-  const finalArgs: Argv<Positionals, Options> = {
+  const positionalKeys = Reflect.ownKeys(positionals).map((v) => String(v));
+
+  const finalArgs: Argv<PositionalRecord, OptionRecord> = {
     ...parsedArgs,
-    _: positionalKeys.reduce((memo, positionalKey, i) => {
+    ...positionalKeys.reduce((memo: Record<string, Array<string> | string>, positionalKey, i) => {
       const opts = positionals[positionalKey];
-      if (opts.greedy) {
+      if ('greedy' in opts && opts.greedy) {
         if (i + 1 !== positionalKeys.length) {
           throw new Error(
             `Positional "${positionalKey}" defined as "greedy", but cannot be because it is not the last positional option`
@@ -183,6 +188,7 @@ export default async function bootstrap(
     ...options,
     ...globalCommandOptions,
   });
+
   if (!errorReport._isValid) {
     console.log(errorReport);
     logger.error(errorReport);
@@ -195,7 +201,11 @@ export default async function bootstrap(
 export function resolveCommand(
   commands: Array<Command>,
   positionalInput: Array<string>
-): { ...Command, matchedAlias: boolean } | void {
+):
+  | (Command & {
+      matchedAlias: boolean;
+    })
+  | void {
   for (let i = positionalInput.length; i > 0; i--) {
     const subcommand = positionalInput.slice(0, i).join(' ');
     const commandMatch = commands.find(({ command }) => subcommand === command);

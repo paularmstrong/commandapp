@@ -1,4 +1,3 @@
-// @flow
 import formatter from './stdout';
 
 const mockCommand = {
@@ -10,7 +9,7 @@ const mockCommand = {
     'foo-positional': { description: 'the foo positional is this one', required: true },
     'optional-positional': { description: 'this positional is optional' },
     'greedy-positional': { description: 'allows a positional to take 1 or more', greedy: true },
-  },
+  } as const,
   options: {
     tacos: {
       type: 'string',
@@ -28,7 +27,7 @@ const mockCommand = {
       default: false,
       description: 'do you like burritos?',
     },
-  },
+  } as const,
 };
 
 describe('stdout formatter', () => {
@@ -38,17 +37,14 @@ describe('stdout formatter', () => {
         mock command description
 
       Positionals
-        <foo-positional>          the foo positional is
-                                  this one
-        [optional-positional]     this positional is
-                                  optional
-        [greedy-positional...]    allows a positional to
-                                  take 1 or more
+        <foo-positional>          the foo positional is this one
+        [optional-positional]     this positional is optional
+        [greedy-positional...]    allows a positional to take 1 or more
 
       Options
-        --tacos       do you like tacos?                [\\"yes\\", \\"no\\"][default: \\"yes\\"]
-        --churros     do you like tacos?                [string][required]
-        --burritos    do you like burritos?             [boolean][default: false]
+        --tacos       do you like tacos?                                                        [\\"yes\\", \\"no\\"][default: \\"yes\\"]
+        --churros     do you like tacos?                                                        [string][required]
+        --burritos    do you like burritos?                                                     [boolean][default: false]
 
       Examples
 
@@ -68,17 +64,14 @@ describe('stdout formatter', () => {
         mock-command    mock command description
 
       Positionals
-        <foo-positional>          the foo positional is
-                                  this one
-        [optional-positional]     this positional is
-                                  optional
-        [greedy-positional...]    allows a positional to
-                                  take 1 or more
+        <foo-positional>          the foo positional is this one
+        [optional-positional]     this positional is optional
+        [greedy-positional...]    allows a positional to take 1 or more
 
       Options
-        --tacos       do you like tacos?                [\\"yes\\", \\"no\\"][default: \\"yes\\"]
-        --churros     do you like tacos?                [string][required]
-        --burritos    do you like burritos?             [boolean][default: false]
+        --tacos       do you like tacos?                                                        [\\"yes\\", \\"no\\"][default: \\"yes\\"]
+        --churros     do you like tacos?                                                        [string][required]
+        --burritos    do you like burritos?                                                     [boolean][default: false]
 
       Examples
 

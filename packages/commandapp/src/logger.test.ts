@@ -1,4 +1,3 @@
-// @flow
 import Logger from './logger';
 import random from 'random-seed';
 import { Writable } from 'stream';
@@ -19,7 +18,7 @@ class MockWritable extends Writable {
 }
 
 describe('Logger', () => {
-  let stdout, stderr;
+  let stdout: MockWritable, stderr: MockWritable;
 
   beforeEach(() => {
     jest.spyOn(Date, 'now').mockReturnValue(0);
@@ -196,7 +195,7 @@ describe('Logger', () => {
         " LOG  Symbol(foobar)
          LOG  true
          LOG  2
-         LOG  function someFunction() {}
+         LOG  function someFunction() { }
          LOG  test class to string
         "
       `);
@@ -230,7 +229,7 @@ describe('Logger', () => {
       firstChild.log('second log');
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " START  firstChild 
+        " START  firstChild
          LOG  firstChild first log
          LOG  firstChild second log
         "
@@ -241,8 +240,8 @@ describe('Logger', () => {
       `);
       firstChild.end();
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " DONE  firstChild 
-         START  secondChild 
+        " DONE  firstChild
+         START  secondChild
          LOG  secondChild first log
         "
       `);
@@ -267,15 +266,15 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " START  firstChild 
-         START  secondChild 
+        " START  firstChild
+         START  secondChild
          LOG  firstChild first log
          LOG  secondChild first log
          LOG  firstChild second log
          LOG  secondChild second log
-         DONE  secondChild 
+         DONE  secondChild
          LOG  firstChild third log
-         DONE  firstChild 
+         DONE  firstChild
         "
       `);
     });
@@ -306,15 +305,15 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " START  firstChild  +0ms
+        " START  firstChild +0ms
          LOG  firstChild first log +40ms
          LOG  firstChild second log +30ms
          LOG  firstChild third log +15ms
-         DONE  firstChild  +0ms
-         START  secondChild  +20ms
+         DONE  firstChild +0ms
+         START  secondChild +20ms
          LOG  secondChild first log +30ms
          LOG  secondChild second log +20ms
-         DONE  secondChild  +0ms
+         DONE  secondChild +0ms
         "
       `);
 
@@ -347,15 +346,15 @@ describe('Logger', () => {
       firstChild.end();
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        " START  firstChild  +0ms
-         START  secondChild  +20ms
+        " START  firstChild +0ms
+         START  secondChild +20ms
          LOG  firstChild first log +40ms
          LOG  secondChild first log +30ms
          LOG  firstChild second log +30ms
          LOG  secondChild second log +20ms
-         DONE  secondChild  +0ms
+         DONE  secondChild +0ms
          LOG  firstChild third log +15ms
-         DONE  firstChild  +0ms
+         DONE  firstChild +0ms
         "
       `);
 
@@ -377,19 +376,19 @@ describe('Logger', () => {
       });
 
       expect(stdout.toString()).toMatchInlineSnapshot(`
-        "[46m[1m START [22m[49m [38;2;237;40;165mchild0[39m [38;2;237;40;165m +0ms[39m
-        [46m[1m START [22m[49m [38;2;211;7;222mchild1[39m [38;2;211;7;222m +0ms[39m
-        [46m[1m START [22m[49m [38;2;214;155;36mchild2[39m [38;2;214;155;36m +0ms[39m
-        [46m[1m START [22m[49m [38;2;245;88;96mchild3[39m [38;2;245;88;96m +0ms[39m
-        [46m[1m START [22m[49m [38;2;74;255;140mchild4[39m [38;2;74;255;140m +0ms[39m
-        [46m[1m START [22m[49m [38;2;209;212;30mchild5[39m [38;2;209;212;30m +0ms[39m
-        [46m[1m START [22m[49m [38;2;66;245;197mchild6[39m [38;2;66;245;197m +0ms[39m
-        [46m[1m START [22m[49m [38;2;91;105;201mchild7[39m [38;2;91;105;201m +0ms[39m
-        [46m[1m START [22m[49m [38;2;28;232;215mchild8[39m [38;2;28;232;215m +0ms[39m
-        [46m[1m START [22m[49m [38;2;76;230;163mchild9[39m [38;2;76;230;163m +0ms[39m
-        [46m[1m START [22m[49m [38;2;16;158;224mchild10[39m [38;2;16;158;224m +0ms[39m
-        [46m[1m START [22m[49m [38;2;212;51;107mchild11[39m [38;2;212;51;107m +0ms[39m
-        [46m[1m START [22m[49m [38;2;209;202;59mchild12[39m [38;2;209;202;59m +0ms[39m
+        "[46m[1m START [22m[49m [38;2;237;40;165mchild0[39m[38;2;237;40;165m +0ms[39m
+        [46m[1m START [22m[49m [38;2;211;7;222mchild1[39m[38;2;211;7;222m +0ms[39m
+        [46m[1m START [22m[49m [38;2;214;155;36mchild2[39m[38;2;214;155;36m +0ms[39m
+        [46m[1m START [22m[49m [38;2;245;88;96mchild3[39m[38;2;245;88;96m +0ms[39m
+        [46m[1m START [22m[49m [38;2;74;255;140mchild4[39m[38;2;74;255;140m +0ms[39m
+        [46m[1m START [22m[49m [38;2;209;212;30mchild5[39m[38;2;209;212;30m +0ms[39m
+        [46m[1m START [22m[49m [38;2;66;245;197mchild6[39m[38;2;66;245;197m +0ms[39m
+        [46m[1m START [22m[49m [38;2;91;105;201mchild7[39m[38;2;91;105;201m +0ms[39m
+        [46m[1m START [22m[49m [38;2;28;232;215mchild8[39m[38;2;28;232;215m +0ms[39m
+        [46m[1m START [22m[49m [38;2;76;230;163mchild9[39m[38;2;76;230;163m +0ms[39m
+        [46m[1m START [22m[49m [38;2;16;158;224mchild10[39m[38;2;16;158;224m +0ms[39m
+        [46m[1m START [22m[49m [38;2;212;51;107mchild11[39m[38;2;212;51;107m +0ms[39m
+        [46m[1m START [22m[49m [38;2;209;202;59mchild12[39m[38;2;209;202;59m +0ms[39m
         [38;2;0;0;0m[106m[1m LOG [22m[49m[39m [38;2;237;40;165mchild0[39m hello[38;2;237;40;165m +0ms[39m
         [38;2;0;0;0m[106m[1m LOG [22m[49m[39m [38;2;211;7;222mchild1[39m hello[38;2;211;7;222m +0ms[39m
         [38;2;0;0;0m[106m[1m LOG [22m[49m[39m [38;2;214;155;36mchild2[39m hello[38;2;214;155;36m +0ms[39m

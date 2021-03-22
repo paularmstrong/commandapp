@@ -1,12 +1,11 @@
-// @flow
 import jsonFormatter from './json';
 import markdownFormatter from './markdown';
 import stdoutFormatter from './stdout';
-import type { Command } from '../options';
+import { Command } from '../options';
 
 type Formatter = (tree: Command | Array<Command>) => Promise<string>;
 
-const formatters = {
+const formatters: { [key: string]: Formatter } = {
   json: jsonFormatter,
   markdown: markdownFormatter,
   stdout: stdoutFormatter,
@@ -20,7 +19,7 @@ function registerFormatter(name: string, formatter: Formatter): void {
 
 export default async function format(
   tree: Command | Array<Command>,
-  formatterName?: string = 'stdout'
+  formatterName: string = 'stdout'
 ): Promise<string> {
   if (!(formatterName in formatters)) {
     throw new Error(`Cannot format documentation tree using unregistered formatter "${formatterName}"`);

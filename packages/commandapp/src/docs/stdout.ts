@@ -1,10 +1,9 @@
-// @flow
-import type { Command } from '../options';
 import ejs from 'ejs';
 import path from 'path';
 import cliui from 'cliui';
+import { Command, OptionRecord, PositionalRecord } from '../options';
 
-function formatDefault(value: mixed): string {
+function formatDefault(value: unknown): string {
   if (Array.isArray(value)) {
     return value.map((v) => `"${String(v)}"`).join(', ');
   }
@@ -14,12 +13,11 @@ function formatDefault(value: mixed): string {
   return String(value);
 }
 
-function optionsTable(options: $PropertyType<Command, 'options'>): string {
+function optionsTable(options: OptionRecord): string {
   return Object.keys(options).reduce((memo, key) => {
     const opt = options[key];
     const { alias, description, type } = opt;
     const choices = type === 'string' && 'choices' in opt && Array.isArray(opt.choices) ? opt.choices : void 0;
-    // $FlowFixMe too hard to figure out if default for sure exists or not
     const defaultValue = 'default' in opt && typeof opt.default !== undefined ? opt['default'] : void 0;
     const required = 'required' in opt && typeof opt.required === 'boolean' && opt.required === true;
 
@@ -31,7 +29,7 @@ function optionsTable(options: $PropertyType<Command, 'options'>): string {
   }, '');
 }
 
-function positionalsTable(positionals: $PropertyType<Command, 'positionals'>): string {
+function positionalsTable(positionals: PositionalRecord): string {
   return Object.keys(positionals).reduce((memo, key) => {
     const pos = positionals[key];
     const { choices, description } = pos;
@@ -44,12 +42,13 @@ function positionalsTable(positionals: $PropertyType<Command, 'positionals'>): s
   }, '');
 }
 
+const MAX_COLS = 160;
+
 export default async function stdoutFormatter(tree: Array<Command> | Command): Promise<string> {
   const data = { commands: Array.isArray(tree) ? tree : [tree] };
-  // $FlowFixMe columns exists on process.stdout
-  const { columns = 80 } = process.stdout;
+  const { columns = MAX_COLS } = process.stdout;
   const columnWidth = Math.floor(columns / 4);
-  const ui = cliui({ width: Math.min(columns, 80) });
+  const ui = cliui({ width: Math.min(columns, MAX_COLS) });
 
   const command = Array.isArray(tree) ? tree[0] : tree;
 

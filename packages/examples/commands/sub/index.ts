@@ -1,5 +1,6 @@
-// @flow
-import type { Argv } from '@commandapp/commandapp';
+import { Argv } from '@commandapp/commandapp';
+
+export const alias = 'foo';
 
 export const description = 'This is the description for the command "sub command"';
 
@@ -9,10 +10,10 @@ export const options = {
     description: 'This is the description',
     default: 'foo',
   },
-};
+} as const;
 
 export const handler = async (argv: Argv<{}, typeof options>) => {
   const { foo } = argv;
-  console.log('Hello from sub command handler' + foo);
+  console.log('Hello from foo handler' + foo);
   console.log(argv);
 };

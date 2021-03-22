@@ -1,19 +1,19 @@
-// @flow
 import chalk from 'chalk';
-import random from 'random-seed';
+import stream from 'stream';
+import { create as createRandom, RandomSeed } from 'random-seed';
 
-type LoggerOptions = {|
-  _random?: typeof random,
-  useColor?: boolean,
-  interleave?: boolean,
-  verbosity?: number,
-  stdout?: stream$Writable,
-  stderr?: stream$Writable,
-|};
+type LoggerOptions = {
+  _random?: RandomSeed;
+  useColor?: boolean | chalk.ColorSupport;
+  interleave?: boolean;
+  verbosity?: number;
+  stdout?: stream.Writable;
+  stderr?: stream.Writable;
+};
 
 type LogLevel = 'log' | 'error' | 'warn' | 'info' | 'debug';
 
-function stringify(item: mixed): string {
+function stringify(item: unknown): string {
   if (typeof item === 'string') {
     return item;
   }
@@ -34,16 +34,16 @@ function stringify(item: mixed): string {
 }
 
 export default class Logger {
-  +_verbosity: number;
-  +_interleave: boolean;
-  +_stdout: stream$Writable;
-  +_stderr: stream$Writable;
-  +_children: Array<ChildLogger> = [];
-  +_chalk: typeof chalk;
-  +_useColor: boolean;
+  readonly _verbosity: number;
+  readonly _interleave: boolean;
+  readonly _stdout: stream.Writable;
+  readonly _stderr: stream.Writable;
+  readonly _children: Array<ChildLogger> = [];
+  readonly _chalk: chalk.Chalk;
+  readonly _useColor: boolean | chalk.ColorSupport;
 
   _lastTimestamp: number = Date.now();
-  +_random: typeof random;
+  readonly _random: RandomSeed;
 
   constructor({
     useColor,
@@ -51,9 +51,9 @@ export default class Logger {
     interleave = false,
     stdout = process.stdout,
     stderr = process.stderr,
-    _random = random.create(),
+    _random = createRandom(),
   }: LoggerOptions) {
-    this._useColor = Boolean(useColor === true ? true : useColor === false ? false : chalk.supportsColor);
+    this._useColor = useColor === true ? true : useColor === false ? false : chalk.supportsColor;
     this._chalk = new chalk.Instance({
       level: this._useColor ? 3 : 0,
     });
@@ -107,31 +107,31 @@ export default class Logger {
     }
   };
 
-  log(output: mixed): void {
+  log(output: unknown): void {
     return this.writeStdout(stringify(output), [this._chalk.hex('#000').bgCyanBright.bold(' LOG ')]);
   }
 
   // -v 0
-  error(output: mixed): void {
+  error(output: unknown): void {
     return this.writeStderr(stringify(output), [this._chalk.hex('#FFF').bgRed.bold(' ERROR ')]);
   }
 
   // -v 1
-  warn(output: mixed): void {
+  warn(output: unknown): void {
     if (this._verbosity >= 1) {
       return this.writeStderr(stringify(output), [this._chalk.hex('#000').bgYellow.bold(' WARN ')]);
     }
   }
 
   // -v 2
-  info(output: mixed): void {
+  info(output: unknown): void {
     if (this._verbosity >= 2) {
       return this.writeStderr(stringify(output), [this._chalk.hex('#FFF').bgBlue.bold(' INFO ')]);
     }
   }
 
   // -v 3
-  debug(output: mixed): void {
+  debug(output: unknown): void {
     if (this._verbosity >= 3) {
       return this.writeStderr(stringify(output), [this._chalk.hex('#FFF').bgMagenta.bold(' DEBUG ')]);
     }
@@ -146,7 +146,7 @@ export default class Logger {
 
   writeStdout(output: string, prefix: Array<string> = [], timestamp: number = Date.now()): void {
     this._stdout.write(
-      `${prefix.length ? `${prefix.join(' ')} ` : ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''),
+      `${prefix.length ? prefix.join(' ') : ''}${output ? ` ${output}` : ''}${this.getTimeDiff(timestamp)}\n`,
       'utf8'
     );
     this._lastTimestamp = timestamp;
@@ -154,37 +154,35 @@ export default class Logger {
 
   writeStderr(output: string, prefix: Array<string>, timestamp: number = Date.now()): void {
     this._stderr.write(
-      `${prefix.length ? `${prefix.join(' ')} ` : ''}${output}${this.getTimeDiff(timestamp)}\n`.replace(/\n{2,}$/, ''),
+      `${prefix.length ? prefix.join(' ') : ''}${output ? ` ${output}` : ''}${this.getTimeDiff(timestamp)}\n`,
       'utf8'
     );
     this._lastTimestamp = timestamp;
   }
 }
 
-type ChildLoggerOptions = {|
-  ...LoggerOptions,
-  prefix: string,
-  color: [number, number, number],
-  onEnd: (logger: ChildLogger) => void,
-  requestActivate: (logger: ChildLogger) => void,
-|};
+type ChildLoggerOptions = LoggerOptions & {
+  prefix: string;
+  color: [number, number, number];
+  onEnd: (logger: ChildLogger) => void;
+  requestActivate: (logger: ChildLogger) => void;
+};
 
 const startSentinel = Symbol.for('logger start');
 const endSentinel = Symbol.for('logger end');
 
 class ChildLogger extends Logger {
-  +_stdoutBuffer: Array<{ timestamp: number, prefix: Array<string>, contents: mixed }> = [];
-  +_stderrBuffer: Array<{ timestamp: number, prefix: Array<string>, contents: mixed }> = [];
-  +_onEnd: (logger: ChildLogger) => void;
-  +_requestActivate: (logger: ChildLogger) => void;
+  readonly _stdoutBuffer: Array<{ timestamp: number; prefix: Array<string>; contents: unknown }> = [];
+  readonly _stderrBuffer: Array<{ timestamp: number; prefix: Array<string>; contents: unknown }> = [];
+  readonly _onEnd: (logger: ChildLogger) => void;
+  readonly _requestActivate: (logger: ChildLogger) => void;
 
-  +prefix: string;
-  +color: [number, number, number];
+  readonly prefix: string;
+  readonly color: [number, number, number];
 
   isActive: boolean = false;
 
-  constructor(options: ChildLoggerOptions) {
-    const { onEnd, prefix, color, requestActivate, ...parentOptions } = options;
+  constructor({ onEnd, prefix, color, requestActivate, ...parentOptions }: ChildLoggerOptions) {
     super(parentOptions);
     this.prefix = prefix;
     this.color = color;
@@ -197,7 +195,7 @@ class ChildLogger extends Logger {
     throw new Error('Cannot create sub-children');
   }
 
-  start(timestamp?: number = Date.now()): void {
+  start(timestamp: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
       this.writeStdout('', [this._chalk.bgCyan.bold(' START ')], timestamp);
@@ -207,7 +205,7 @@ class ChildLogger extends Logger {
     this._stdoutBuffer.push({ timestamp, prefix: [], contents: startSentinel });
   }
 
-  end(timestamp?: number = Date.now()): void {
+  end(timestamp: number = Date.now()): void {
     this._requestActivate(this);
     if (this.isActive) {
       this.writeStdout('', [this._chalk.bgCyan.bold(' DONE ')], timestamp);
@@ -238,7 +236,7 @@ class ChildLogger extends Logger {
       return;
     }
     while (this._stdoutBuffer.length > 0) {
-      const { contents, prefix, timestamp } = this._stdoutBuffer.shift();
+      const { contents, prefix, timestamp } = this._stdoutBuffer.shift() || {};
       if (contents === startSentinel) {
         this.start(timestamp);
         continue;
@@ -265,7 +263,7 @@ class ChildLogger extends Logger {
       return;
     }
     while (this._stderrBuffer.length > 0) {
-      const { contents, prefix, timestamp } = this._stderrBuffer.shift();
+      const { contents, prefix, timestamp } = this._stderrBuffer.shift() || {};
       this.writeStderr(stringify(contents), prefix, timestamp);
     }
   }

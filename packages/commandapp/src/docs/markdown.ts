@@ -1,5 +1,4 @@
-// @flow
-import type { Command } from '../options';
+import { Command } from '../options';
 import ejs from 'ejs';
 import path from 'path';
 

@@ -1,4 +1,3 @@
-// @flow
 import parseOptions, { validate } from './options';
 
 const defaultOptions = Object.freeze({
@@ -95,7 +94,7 @@ describe('parseOptions', () => {
   test('invalid type', () => {
     expect(() =>
       parseOptions(
-        // $FlowExpectedError
+        // @ts-ignore expected error
         { foo: { description, type: 'foobar' } }
       )
     ).toThrow(new Error('Option "foo" has invalid type "foobar"'));
@@ -104,28 +103,26 @@ describe('parseOptions', () => {
 
 describe('validate', () => {
   test('returns no errors', () => {
-    expect(validate({ _: {} }, {}, {})).toEqual({ _isValid: true, _: {}, _unknown: [] });
+    expect(validate({}, {}, {})).toEqual({ _isValid: true, _unknown: [] });
   });
 
   describe('positionals', () => {
     test('required positional not provided', () => {
       expect(
-        // $FlowExpectedError
-        validate({ _: {} }, { foo: { required: true, description: 'required positional' } }, {})
+        // @ts-ignore expected error
+        validate({}, { foo: { required: true, description: 'required positional' } }, {})
       ).toEqual({
         _isValid: false,
-        _: { foo: [new Error('No value provided for required positional "<foo>"')] },
+        foo: [new Error('No value provided for required positional "<foo>"')],
         _unknown: [],
       });
     });
 
     test('required positional provided', () => {
-      expect(
-        // $FlowFixMe this should be working
-        validate({ _: { foo: 'foo-value' } }, { foo: { required: true, description: 'required positional' } }, {})
-      ).toEqual({
+      const positionals = { foo: { required: true, description: 'required positional' } };
+      expect(validate({ foo: 'foo-value' }, positionals, {})).toEqual({
         _isValid: true,
-        _: { foo: [] },
+        foo: [],
         _unknown: [],
       });
     });
@@ -134,47 +131,35 @@ describe('validate', () => {
   describe('options', () => {
     test('string not in choices', () => {
       expect(
-        // $FlowExpectedError
-        validate({ _: {}, foo: 'tacos' }, {}, { foo: { description, type: 'string', choices: ['bar', 'qux'] } })
+        // @ts-ignore expected error
+        validate({ foo: 'tacos' }, {}, { foo: { description, type: 'string', choices: ['bar', 'qux'] } })
       ).toEqual({
         _isValid: false,
-        _: {},
         _unknown: [],
         foo: [new Error('Value "tacos" for "--foo" failed to match one of "bar", "qux"')],
       });
     });
 
     test('string in choices', () => {
-      expect(
-        // $FlowExpectedError
-        validate({ _: {}, foo: 'bar' }, {}, { foo: { description, type: 'string', choices: ['bar', 'qux'] } })
-      ).toEqual({
+      expect(validate({ foo: 'bar' }, {}, { foo: { description, type: 'string', choices: ['bar', 'qux'] } })).toEqual({
         _isValid: true,
-        _: {},
         _unknown: [],
         foo: [],
       });
     });
 
     test('required option not provided', () => {
-      expect(
-        // $FlowExpectedError
-        validate({ _: {} }, {}, { foo: { description, type: 'string', required: true } })
-      ).toEqual({
+      // @ts-ignore expected error
+      expect(validate({}, {}, { foo: { description, type: 'string', required: true } })).toEqual({
         _isValid: false,
-        _: {},
         _unknown: [],
         foo: [new Error('No value provided for required argument "--foo"')],
       });
     });
 
     test('no error if required option is provided', () => {
-      expect(
-        // $FlowExpectedError
-        validate({ _: {}, foo: 'foobar' }, {}, { foo: { description, type: 'string', required: true } })
-      ).toEqual({
+      expect(validate({ foo: 'foobar' }, {}, { foo: { description, type: 'string', required: true } })).toEqual({
         _isValid: true,
-        _: {},
         _unknown: [],
         foo: [],
       });
@@ -182,12 +167,8 @@ describe('validate', () => {
   });
 
   test('returns errors for unknown options', () => {
-    expect(
-      // $FlowExpectedError
-      validate({ _: {}, foo: 'is unknown', bar: 'is also uknown' }, {}, {})
-    ).toEqual({
+    expect(validate({ foo: 'is unknown', bar: 'is also uknown' }, {}, {})).toEqual({
       _isValid: false,
-      _: {},
       _unknown: [new Error('Received unknown argument "--foo"'), new Error('Received unknown argument "--bar"')],
     });
   });

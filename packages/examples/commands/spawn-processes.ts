@@ -1,6 +1,5 @@
-// @flow
-import genRandom from 'random-seed';
-import { type Argv, Logger } from '@commandapp/commandapp';
+import genRandom, { RandomSeed } from 'random-seed';
+import { Argv, Logger } from '@commandapp/commandapp';
 
 export const description = 'Spawn a bunch of processes in parallel to test the logger';
 
@@ -14,7 +13,7 @@ export const options = {
     type: 'string',
     description: 'A seed to use for random number generation',
   },
-};
+} as const;
 
 export const handler = async (argv: Argv<{}, typeof options>, logger: Logger) => {
   const { 'num-processes': numProcesses, seed } = argv;
@@ -25,7 +24,7 @@ export const handler = async (argv: Argv<{}, typeof options>, logger: Logger) =>
   logger.log(`done ${JSON.stringify(ret)}`);
 };
 
-async function spawnRandomLogs(name: string, logger: Logger, random: typeof genRandom) {
+async function spawnRandomLogs(name: string, logger: Logger, random: RandomSeed) {
   const childLogger = logger.createChild(name);
   return new Promise((resolve, reject) => {
     setTimeout(async () => {
@@ -50,10 +49,11 @@ async function spawnRandomLogs(name: string, logger: Logger, random: typeof genR
               case 4:
                 method = childLogger.debug.bind(childLogger);
                 break;
+
               // no default
             }
             method(`this is log ${logsWritten} [rand ${val}]`);
-            resolve();
+            resolve('');
           }, random.intBetween(1, 100));
         });
         logsWritten += 1;

@@ -1,5 +1,4 @@
-// @flow
-import type { Argv } from '@commandapp/commandapp';
+import { Argv } from '@commandapp/commandapp';
 
 export const description = 'This is the description for the command $0';
 
@@ -86,12 +85,12 @@ export const options = {
     description: 'This string must be one of the choices',
     choices: ['foo', 'bar'],
   },
-};
+} as const;
 
 export const handler = async (argv: Argv<{}, typeof options>) => {
-  const array: Array<string> | void = argv.array;
-  const arrayDefaulted: Array<string> = argv['array-defaulted'];
-  const arrayRequired: Array<string> = argv['array-required'];
+  const array: ReadonlyArray<string> | void = argv.array;
+  const arrayDefaulted: ReadonlyArray<string> = argv['array-defaulted'];
+  const arrayRequired: ReadonlyArray<string> = argv['array-required'];
   const boolean: boolean | void = argv.boolean;
   const booleanDefaulted: boolean = argv['boolean-defaulted'];
   const booleanRequired: boolean = argv['boolean-required'];
